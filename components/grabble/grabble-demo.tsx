@@ -298,14 +298,34 @@ export function GrabbleDemo() {
       
       {/* Phones */}
       <div className="flex flex-wrap items-start justify-center gap-8">
-        <AnimatePresence mode="wait">
-          <PhoneFrame key="player1" playerName={state.player1.name} playerId={1}>
-            {renderScreen(1)}
-          </PhoneFrame>
-          <PhoneFrame key="player2" playerName={state.player2.name} playerId={2}>
-            {renderScreen(2)}
-          </PhoneFrame>
-        </AnimatePresence>
+        <PhoneFrame playerName={state.player1.name} playerId={1}>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={state.currentScreen}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 10 }}
+              transition={{ duration: 0.2 }}
+              className="h-full"
+            >
+              {renderScreen(1)}
+            </motion.div>
+          </AnimatePresence>
+        </PhoneFrame>
+        <PhoneFrame playerName={state.player2.name} playerId={2}>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={state.currentScreen}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 10 }}
+              transition={{ duration: 0.2 }}
+              className="h-full"
+            >
+              {renderScreen(2)}
+            </motion.div>
+          </AnimatePresence>
+        </PhoneFrame>
       </div>
       
       {/* Footer info */}
