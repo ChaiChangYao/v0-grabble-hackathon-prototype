@@ -30,23 +30,23 @@ export function AIGameSelectionScreen({ preSelectedGame, onGameSelected }: AIGam
     if (hasStartedRef.current) return
     hasStartedRef.current = true
     
-    // Progress through steps
+    // Progress through steps - fast 300ms per step
     const stepInterval = setInterval(() => {
       setCurrentStep((prev) => {
         if (prev < loadingSteps.length - 1) return prev + 1
         return prev
       })
-    }, 800)
+    }, 300)
     
-    // Show result after all steps
+    // Show result after all steps (5 steps x 300ms = 1.5s)
     const resultTimer = setTimeout(() => {
       setShowResult(true)
-    }, loadingSteps.length * 800)
+    }, loadingSteps.length * 300)
     
-    // Transition to game
+    // Transition to game (1.5s + 1s for reveal)
     const gameTimer = setTimeout(() => {
       onGameSelected(selectedGame)
-    }, loadingSteps.length * 800 + 2500)
+    }, loadingSteps.length * 300 + 1000)
     
     return () => {
       clearInterval(stepInterval)
