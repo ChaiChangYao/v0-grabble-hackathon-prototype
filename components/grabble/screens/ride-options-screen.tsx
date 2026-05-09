@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion'
 import { MapBackground } from '../map-background'
 import { Player } from '@/lib/grabble-types'
+import { ChevronLeft, ChevronDown, Users, Swords, Sparkles, MoreHorizontal, Check } from 'lucide-react'
 
 interface RideOptionsScreenProps {
   player: Player
@@ -16,7 +17,7 @@ export function RideOptionsScreen({ player, onSelectGrabble, onBack }: RideOptio
       id: 'grabble',
       name: 'Grabble',
       subtitle: 'Battle for 0.5x fare',
-      price: `Win: $${player.winnerFare.toFixed(2)} · Lose: $${player.loserFare.toFixed(2)}`,
+      price: `Win: $${player.winnerFare.toFixed(2)} / Lose: $${player.loserFare.toFixed(2)}`,
       eta: '3 mins away',
       capacity: 4,
       isGrabble: true,
@@ -58,18 +59,14 @@ export function RideOptionsScreen({ player, onSelectGrabble, onBack }: RideOptio
           onClick={onBack}
           className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-md"
         >
-          <svg className="h-5 w-5 text-[#212529]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
+          <ChevronLeft className="h-5 w-5 text-[#212529]" />
         </motion.button>
         <span className="font-semibold text-[#212529] text-sm tracking-wide uppercase">Singapore</span>
         <motion.button
           whileTap={{ scale: 0.9 }}
           className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-md"
         >
-          <svg className="h-5 w-5 text-[#212529]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
+          <ChevronDown className="h-5 w-5 text-[#212529]" />
         </motion.button>
       </div>
 
@@ -119,9 +116,8 @@ export function RideOptionsScreen({ player, onSelectGrabble, onBack }: RideOptio
                     <motion.div
                       animate={{ rotate: [0, 5, -5, 0] }}
                       transition={{ repeat: Infinity, duration: 2 }}
-                      className="text-2xl"
                     >
-                      ⚔️
+                      <Swords className="w-6 h-6 text-white" />
                     </motion.div>
                   ) : (
                     <svg className="h-6 w-6 text-[#00b14f]" viewBox="0 0 24 24" fill="currentColor">
@@ -138,9 +134,7 @@ export function RideOptionsScreen({ player, onSelectGrabble, onBack }: RideOptio
                     </span>
                     {option.capacity && (
                       <span className="flex items-center gap-0.5 text-xs text-[#6c757d]">
-                        <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z" />
-                        </svg>
+                        <Users className="h-3 w-3" />
                         {option.capacity}
                       </span>
                     )}
@@ -157,12 +151,12 @@ export function RideOptionsScreen({ player, onSelectGrabble, onBack }: RideOptio
                           className="inline-flex items-center gap-1 rounded-full bg-[#00b14f]/20 px-2 py-0.5 text-[10px] font-medium text-[#00923f]"
                         >
                           {badge === 'AI Matched' && (
-                            <motion.span
+                            <motion.div
                               animate={{ opacity: [1, 0.5, 1] }}
                               transition={{ repeat: Infinity, duration: 1.5 }}
                             >
-                              ✨
-                            </motion.span>
+                              <Sparkles className="w-3 h-3" />
+                            </motion.div>
                           )}
                           {badge}
                         </span>
@@ -188,9 +182,7 @@ export function RideOptionsScreen({ player, onSelectGrabble, onBack }: RideOptio
                   )}
                   {option.isSelected && !option.isGrabble && (
                     <div className="mt-1 flex h-5 w-5 items-center justify-center rounded bg-[#00b14f] ml-auto">
-                      <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                      </svg>
+                      <Check className="h-3 w-3 text-white" />
                     </div>
                   )}
                 </div>
@@ -206,15 +198,11 @@ export function RideOptionsScreen({ player, onSelectGrabble, onBack }: RideOptio
               <div className="flex h-6 w-10 items-center justify-center rounded bg-[#1a1f71] text-xs font-bold text-white">
                 VISA
               </div>
-              <span className="text-[#212529]">•••• 1787</span>
+              <span className="text-[#212529]">1787</span>
             </div>
             <span className="text-[#6c757d]">Offers</span>
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f1f3f5]">
-              <svg className="h-4 w-4 text-[#6c757d]" fill="currentColor" viewBox="0 0 24 24">
-                <circle cx="5" cy="12" r="2" />
-                <circle cx="12" cy="12" r="2" />
-                <circle cx="19" cy="12" r="2" />
-              </svg>
+              <MoreHorizontal className="h-4 w-4 text-[#6c757d]" />
             </div>
           </div>
           <motion.button

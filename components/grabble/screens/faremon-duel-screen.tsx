@@ -1,7 +1,9 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FareMonState, FareMonMove, player1Moves, player2Moves } from '@/lib/grabble-types'
+import { generateFareMonPrompt } from '@/lib/ai-generation'
 
 interface FareMonDuelScreenProps {
   playerId: 1 | 2
@@ -42,18 +44,21 @@ function CreatureCard({
               : 'bg-gradient-to-br from-[#00b14f]/20 to-[#00b14f]/10'
           }`}
         >
-          <span className="text-4xl">
-            {isOpponent ? '🐯' : '🐍'}
-          </span>
+          {/* AI-generated creature placeholder */}
+          <div className={`w-12 h-12 rounded-xl ${isOpponent ? 'bg-gradient-to-br from-orange-500 to-red-500' : 'bg-gradient-to-br from-green-500 to-emerald-500'} flex items-center justify-center`}>
+            <span className="text-white font-bold text-lg">{creature.name.charAt(0)}</span>
+          </div>
           
           {/* Shield indicator */}
           {creature.shield > 0 && (
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className="absolute -top-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-[#00b14f] text-xs font-bold text-white"
+              className="absolute -top-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-blue-500"
             >
-              🛡️
+              <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.617 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.018 1 1 0 01-.285-1.05l1.715-5.349L11 6.477V16h2a1 1 0 110 2H7a1 1 0 110-2h2V6.477L6.237 7.582l1.715 5.35a1 1 0 01-.285 1.05A3.989 3.989 0 015 15a3.989 3.989 0 01-2.667-1.018 1 1 0 01-.285-1.05l1.738-5.42-1.233-.617a1 1 0 01.894-1.79l1.599.8L9 4.323V3a1 1 0 011-1z" clipRule="evenodd" />
+              </svg>
             </motion.div>
           )}
         </motion.div>
@@ -137,23 +142,39 @@ function MoveButton({
 }
 
 export function FareMonDuelScreen({ playerId, state, onSelectMove, waitingForOpponent }: FareMonDuelScreenProps) {
+  const [imagePrompt, setImagePrompt] = useState<string>('')
+  
   const moves = playerId === 1 ? player1Moves : player2Moves
   const playerCreature = playerId === 1 ? state.player1Creature : state.player2Creature
   const opponentCreature = playerId === 1 ? state.player2Creature : state.player1Creature
   const hasSelectedMove = playerId === 1 ? state.player1Move !== null : state.player2Move !== null
+  
+  useEffect(() => {
+    // Generate AI image prompt based on creature
+    setImagePrompt(generateFareMonPrompt(playerCreature.name, playerCreature.type))
+  }, [playerCreature.name, playerCreature.type])
   
   return (
     <div className="flex h-full flex-col bg-gradient-to-b from-[#1a1a2e] to-[#16213e]">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
         <div className="flex items-center gap-2">
-          <span className="text-lg">⚔️</span>
+          <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
           <span className="font-semibold text-white">FareMon Duel</span>
         </div>
         <div className="flex items-center gap-2 rounded-full bg-white/10 px-3 py-1">
           <span className="text-xs text-white/70">Turn</span>
           <span className="text-sm font-bold text-white">{state.currentTurn}/{state.maxTurns}</span>
         </div>
+      </div>
+      
+      {/* AI Image Generation Prompt */}
+      <div className="px-3 py-2 bg-black/30 border-b border-white/10">
+        <p className="text-[9px] text-gray-400 font-mono leading-tight">
+          <span className="text-[#00b14f]">AI Image Prompt:</span> {imagePrompt}
+        </p>
       </div>
       
       {/* Battle arena */}
@@ -168,28 +189,6 @@ export function FareMonDuelScreen({ playerId, state, onSelectMove, waitingForOpp
         <div className="flex justify-end mb-4">
           <CreatureCard creature={opponentCreature} isOpponent />
         </div>
-        
-        {/* AI Commentary */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={state.aiCommentary}
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="mx-auto mb-4 max-w-[280px] rounded-xl bg-white/10 px-4 py-2.5 backdrop-blur-sm"
-          >
-            <div className="flex items-start gap-2">
-              <motion.span
-                animate={{ opacity: [1, 0.5, 1] }}
-                transition={{ repeat: Infinity, duration: 1.5 }}
-                className="text-sm"
-              >
-                ✨
-              </motion.span>
-              <p className="text-xs text-white/90">{state.aiCommentary}</p>
-            </div>
-          </motion.div>
-        </AnimatePresence>
         
         {/* Battle log (last 2 entries) */}
         <div className="mb-4 space-y-1 min-h-[40px]">
@@ -224,7 +223,7 @@ export function FareMonDuelScreen({ playerId, state, onSelectMove, waitingForOpp
               transition={{ repeat: Infinity, duration: 2, ease: 'linear' }}
               className="mb-3 h-10 w-10 rounded-full border-3 border-[#00b14f] border-t-transparent"
             />
-            <p className="font-medium text-[#212529]">Waiting for opponent…</p>
+            <p className="font-medium text-[#212529]">Waiting for opponent</p>
             <p className="text-sm text-[#6c757d]">Your move has been locked in</p>
           </motion.div>
         ) : (

@@ -9,7 +9,7 @@ import { GrabbleOptInScreen } from './screens/grabble-optin-screen'
 import { MatchmakingScreen } from './screens/matchmaking-screen'
 import { AIGameSelectionScreen } from './screens/ai-game-selection-screen'
 import { FareMonDuelScreen } from './screens/faremon-duel-screen'
-import { FareBlocksScreen } from './screens/fare-blocks-screen'
+import { BattleRouteScreen } from './screens/battleroute-screen'
 import { ResultsScreen } from './screens/results-screen'
 import { BookingConfirmationScreen } from './screens/booking-confirmation-screen'
 import {
@@ -17,24 +17,27 @@ import {
   GameType,
   GameState,
   FareMonMove,
-  BlockPiece,
   defaultPlayer1,
   defaultPlayer2,
 } from '@/lib/grabble-types'
 import {
   createInitialFareMonState,
-  createInitialFareBlocksState,
   resolveFareMonTurn,
-  placePiece,
-  clearCompletedLines,
-  calculateFareBlocksScore,
-  updateSurgePressure,
-  determineFareBlocksWinner,
-  generateFareBlocksAIHint,
-  canPlacePiece,
 } from '@/lib/game-engine'
+import {
+  createBattleRouteState,
+  placeRouteAsset,
+  submitRouteAttack,
+  routeAssets,
+  type BattleRouteState,
+} from '@/lib/battleroute-engine'
+import { RotateCcw, Sparkles } from 'lucide-react'
 
-const initialState: GameState = {
+interface ExtendedGameState extends Omit<GameState, 'fareBlocksState'> {
+  battleRouteState: BattleRouteState | null
+}
+
+const initialState: ExtendedGameState = {
   currentScreen: 'home',
   selectedRideOption: null,
   player1: defaultPlayer1,
@@ -42,13 +45,13 @@ const initialState: GameState = {
   matchedFareSimilarity: 99,
   selectedGame: null,
   fareMonState: null,
-  fareBlocksState: null,
+  battleRouteState: null,
   winner: null,
   aiCommentary: [],
 }
 
 export function GrabbleDemo() {
-  const [state, setState] = useState<GameState>(initialState)
+  const [state, setState] = useState<ExtendedGameState>(initialState)
 
   const setScreen = useCallback((screen: Screen) => {
     setState((prev) => ({ ...prev, currentScreen: screen }))
@@ -64,7 +67,7 @@ export function GrabbleDemo() {
       selectedGame: game,
       currentScreen: game,
       fareMonState: game === 'faremon-duel' ? createInitialFareMonState() : null,
-      fareBlocksState: game === 'fare-blocks' ? createInitialFareBlocksState() : null,
+      battleRouteState: game === 'battleroute' ? createBattleRouteState() : null,
     }))
   }, [])
 
@@ -101,67 +104,46 @@ export function GrabbleDemo() {
     })
   }, [])
 
-  const handleFareBlocksPlace = useCallback((playerId: 1 | 2, piece: BlockPiece, row: number, col: number) => {
+  const handleBattleRoutePath = useCallback((playerId: 1 | 2, encodedAction: number) => {
     setState((prev) => {
-      if (!prev.fareBlocksState) return prev
+      if (!prev.battleRouteState) return prev
       
-      const newState = { ...prev.fareBlocksState }
-      const playerKey = playerId === 1 ? 'player1' : 'player2'
-      const playerState = { ...newState[playerKey] }
+      let newState = { ...prev.battleRouteState }
       
-      // Check if placement is valid
-      if (!canPlacePiece(playerState.grid, piece, row, col)) {
-        // Invalid placement - increase surge pressure
-        playerState.surgePressure = updateSurgePressure(
-          playerState.surgePressure,
-          false,
-          0,
-          0,
-          newState.modifier.name
-        )
-        newState[playerKey] = playerState
-        return { ...prev, fareBlocksState: newState }
+      // Decode action: placement vs attack
+      if (encodedAction >= 1000) {
+        // Attack action: 1000 + row*10 + col
+        const decoded = encodedAction - 1000
+        const row = Math.floor(decoded / 10)
+        const col = decoded % 10
+        newState = submitRouteAttack(newState, playerId, row, col)
+      } else {
+        // Placement action: row*100 + col*10 + isHorizontal
+        const row = Math.floor(encodedAction / 100)
+        const col = Math.floor((encodedAction % 100) / 10)
+        const isHorizontal = (encodedAction % 10) === 1
+        
+        // Find the next asset to place for this player
+        const playerKey = playerId === 1 ? 'player1' : 'player2'
+        const placedIds = newState[playerKey].placedAssets.map(p => p.asset.id)
+        const nextAsset = routeAssets.find(a => !placedIds.includes(a.id))
+        
+        if (nextAsset) {
+          newState = placeRouteAsset(newState, playerId, nextAsset, row, col, isHorizontal)
+        }
       }
       
-      // Place the piece
-      const newGrid = placePiece(playerState.grid, piece, row, col)
-      
-      // Clear completed lines
-      const { grid: clearedGrid, rowsCleared, colsCleared } = clearCompletedLines(newGrid)
-      
-      // Calculate score
-      const points = calculateFareBlocksScore(piece, rowsCleared, colsCleared, newState.modifier.name)
-      
-      // Update player state
-      playerState.grid = clearedGrid
-      playerState.score += points
-      playerState.movesRemaining -= 1
-      playerState.surgePressure = updateSurgePressure(
-        playerState.surgePressure,
-        true,
-        rowsCleared,
-        colsCleared,
-        newState.modifier.name
-      )
-      
-      newState[playerKey] = playerState
-      newState.aiHint = generateFareBlocksAIHint()
-      newState.currentPieceIndex = (newState.currentPieceIndex + 1) % 7
-      
-      // Check if game is over (both players have no moves remaining)
-      if (newState.player1.movesRemaining === 0 && newState.player2.movesRemaining === 0) {
-        newState.gameOver = true
-        newState.winner = determineFareBlocksWinner(newState)
-        
+      // Check if game is over
+      if (newState.gameOver) {
         return {
           ...prev,
-          fareBlocksState: newState,
+          battleRouteState: newState,
           winner: newState.winner,
           currentScreen: 'results',
         }
       }
       
-      return { ...prev, fareBlocksState: newState }
+      return { ...prev, battleRouteState: newState }
     })
   }, [])
 
@@ -228,13 +210,13 @@ export function GrabbleDemo() {
           />
         )
       
-      case 'fare-blocks':
-        if (!state.fareBlocksState) return null
+      case 'battleroute':
+        if (!state.battleRouteState) return null
         return (
-          <FareBlocksScreen
+          <BattleRouteScreen
             playerId={playerId}
-            state={state.fareBlocksState}
-            onPlacePiece={(piece, row, col) => handleFareBlocksPlace(playerId, piece, row, col)}
+            state={state.battleRouteState}
+            onSelectPath={(pathIndex) => handleBattleRoutePath(playerId, pathIndex)}
           />
         )
       
@@ -275,7 +257,12 @@ export function GrabbleDemo() {
         className="mb-8 text-center"
       >
         <div className="mb-2 flex items-center justify-center gap-3">
-          <span className="text-4xl">⚔️</span>
+          <svg className="w-10 h-10 text-[#00b14f]" viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="20" cy="20" r="15" />
+            <path d="M13 20h14M20 13v14" strokeLinecap="round" />
+            <circle cx="13" cy="20" r="3" fill="currentColor" stroke="none" />
+            <circle cx="27" cy="20" r="3" fill="currentColor" stroke="none" />
+          </svg>
           <h1 className="text-4xl font-bold text-white">Grabble Demo</h1>
         </div>
         <p className="text-lg text-white/70">
@@ -289,9 +276,7 @@ export function GrabbleDemo() {
           onClick={resetDemo}
           className="mt-4 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-white/80 transition-colors hover:bg-white/20"
         >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
+          <RotateCcw className="h-4 w-4" />
           Reset Demo
         </motion.button>
       </motion.div>
@@ -347,12 +332,12 @@ export function GrabbleDemo() {
           </div>
           <div className="h-4 w-px bg-white/20" />
           <div className="flex items-center gap-2">
-            <motion.span
+            <motion.div
               animate={{ opacity: [1, 0.5, 1] }}
               transition={{ repeat: Infinity, duration: 1.5 }}
             >
-              ✨
-            </motion.span>
+              <Sparkles className="w-4 h-4 text-[#00b14f]" />
+            </motion.div>
             <span className="text-sm text-white/70">AI-powered matching</span>
           </div>
         </div>

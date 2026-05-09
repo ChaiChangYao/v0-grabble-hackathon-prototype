@@ -49,6 +49,9 @@ export function generateFareMonCreaturePrompt(creatureName: string, creatureType
   return `AI-generated ${creatureName} creature for mobile battle game, ${creatureType} themed, ride-hailing inspired design, simple stylized art, green and white color scheme, no copyrighted elements, mobile game ready`
 }
 
+// Alias for backwards compatibility
+export const generateFareMonPrompt = generateFareMonCreaturePrompt
+
 // Generate FareMon move icon prompt
 export function generateFareMonMovePrompt(moveName: string, moveType: string): string {
   return `Minimalist ${moveType.toLowerCase()} move icon named ${moveName}, simple geometric shapes, ${moveType === 'Attack' ? 'red accent' : moveType === 'Defense' ? 'blue accent' : moveType === 'Strategy' ? 'amber accent' : 'purple accent'}, clean sharp edges, mobile game ready`

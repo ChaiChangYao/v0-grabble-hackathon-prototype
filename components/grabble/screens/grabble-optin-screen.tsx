@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { Player } from '@/lib/grabble-types'
+import { X, Trophy, Wallet, Info, Users, Sparkles, Swords } from 'lucide-react'
 
 interface GrabbleOptInScreenProps {
   player: Player
@@ -19,9 +20,7 @@ export function GrabbleOptInScreen({ player, onAccept, onDecline }: GrabbleOptIn
           onClick={onDecline}
           className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20"
         >
-          <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          <X className="h-5 w-5 text-white" />
         </motion.button>
         <span className="font-semibold text-white">Grabble Challenge</span>
         <div className="w-10" />
@@ -36,13 +35,12 @@ export function GrabbleOptInScreen({ player, onAccept, onDecline }: GrabbleOptIn
           transition={{ type: 'spring', stiffness: 300, damping: 20 }}
           className="mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-white shadow-lg"
         >
-          <motion.span
+          <motion.div
             animate={{ rotate: [0, 10, -10, 0] }}
             transition={{ repeat: Infinity, duration: 2 }}
-            className="text-5xl"
           >
-            ⚔️
-          </motion.span>
+            <Swords className="w-12 h-12 text-[#00b14f]" />
+          </motion.div>
         </motion.div>
         
         <motion.h1
@@ -73,8 +71,8 @@ export function GrabbleOptInScreen({ player, onAccept, onDecline }: GrabbleOptIn
           {/* Win scenario */}
           <div className="flex items-center justify-between rounded-2xl bg-white/20 p-4 backdrop-blur-sm">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#ffd93d]/30">
-                <span className="text-xl">🏆</span>
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-yellow-400/30">
+                <Trophy className="w-5 h-5 text-yellow-300" />
               </div>
               <div>
                 <p className="text-sm font-medium text-white/80">If you WIN</p>
@@ -91,7 +89,7 @@ export function GrabbleOptInScreen({ player, onAccept, onDecline }: GrabbleOptIn
           <div className="flex items-center justify-between rounded-2xl bg-white/10 p-4 backdrop-blur-sm">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#ff6b00]/30">
-                <span className="text-xl">💸</span>
+                <Wallet className="w-5 h-5 text-[#ff6b00]" />
               </div>
               <div>
                 <p className="text-sm font-medium text-white/80">If you LOSE</p>
@@ -120,24 +118,20 @@ export function GrabbleOptInScreen({ player, onAccept, onDecline }: GrabbleOptIn
           className="mb-6 space-y-2 text-center text-sm text-white/80"
         >
           <p className="flex items-center justify-center gap-2">
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+            <Info className="h-4 w-4" />
             Strategy-based games, not reflex-based
           </p>
           <p className="flex items-center justify-center gap-2">
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
+            <Users className="h-4 w-4" />
             Both riders must accept the challenge
           </p>
           <p className="flex items-center justify-center gap-2">
-            <motion.span
+            <motion.div
               animate={{ opacity: [1, 0.5, 1] }}
               transition={{ repeat: Infinity, duration: 1.5 }}
             >
-              ✨
-            </motion.span>
+              <Sparkles className="h-4 w-4" />
+            </motion.div>
             AI selects a fair game for both riders
           </p>
         </motion.div>

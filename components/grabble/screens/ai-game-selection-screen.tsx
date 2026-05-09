@@ -3,17 +3,18 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { GameType } from '@/lib/grabble-types'
+import { Search, Zap, Brain, Scale, Gamepad2, Route } from 'lucide-react'
 
 interface AIGameSelectionScreenProps {
   onGameSelected: (game: GameType) => void
 }
 
 const loadingSteps = [
-  { text: 'AI is analyzing both trips…', icon: '🔍' },
-  { text: 'Checking reaction independence…', icon: '⚡' },
-  { text: 'Prioritizing strategy over reflexes…', icon: '🧠' },
-  { text: 'Balancing both players with identical rules…', icon: '⚖️' },
-  { text: 'Selecting fair game…', icon: '🎮' },
+  { text: 'AI is analyzing both trips', icon: Search },
+  { text: 'Checking reaction independence', icon: Zap },
+  { text: 'Prioritizing strategy over reflexes', icon: Brain },
+  { text: 'Balancing both players with identical rules', icon: Scale },
+  { text: 'Selecting fair game', icon: Gamepad2 },
 ]
 
 export function AIGameSelectionScreen({ onGameSelected }: AIGameSelectionScreenProps) {
@@ -23,7 +24,7 @@ export function AIGameSelectionScreen({ onGameSelected }: AIGameSelectionScreenP
 
   useEffect(() => {
     // Randomly select game
-    const game: GameType = Math.random() > 0.5 ? 'faremon-duel' : 'fare-blocks'
+    const game: GameType = Math.random() > 0.5 ? 'faremon-duel' : 'battleroute'
     
     // Progress through steps
     const stepInterval = setInterval(() => {
@@ -82,13 +83,12 @@ export function AIGameSelectionScreen({ onGameSelected }: AIGameSelectionScreenP
                   transition={{ repeat: Infinity, duration: 2 }}
                   className="flex h-28 w-28 items-center justify-center rounded-full bg-gradient-to-br from-[#00b14f] to-[#00923f]"
                 >
-                  <motion.span
+                  <motion.div
                     animate={{ scale: [1, 1.2, 1] }}
                     transition={{ repeat: Infinity, duration: 1.5 }}
-                    className="text-5xl"
                   >
-                    🤖
-                  </motion.span>
+                    <Brain className="w-12 h-12 text-white" />
+                  </motion.div>
                 </motion.div>
                 
                 {/* Orbiting particles */}
@@ -109,47 +109,50 @@ export function AIGameSelectionScreen({ onGameSelected }: AIGameSelectionScreenP
                 ))}
               </div>
               
-              <h2 className="mb-6 text-xl font-bold text-white">AI is selecting a fair game…</h2>
+              <h2 className="mb-6 text-xl font-bold text-white">AI is selecting a fair game</h2>
               
               {/* Steps */}
               <div className="w-full space-y-3">
-                {loadingSteps.map((step, index) => (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ 
-                      opacity: index <= currentStep ? 1 : 0.3,
-                      x: 0
-                    }}
-                    transition={{ delay: index * 0.1 }}
-                    className={`flex items-center gap-3 rounded-xl px-4 py-3 ${
-                      index <= currentStep ? 'bg-[#00b14f]/20' : 'bg-white/5'
-                    }`}
-                  >
-                    <span className="text-xl">{step.icon}</span>
-                    <span className={`text-sm ${index <= currentStep ? 'text-white' : 'text-white/40'}`}>
-                      {step.text}
-                    </span>
-                    {index < currentStep && (
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        className="ml-auto"
-                      >
-                        <svg className="h-5 w-5 text-[#00b14f]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </motion.div>
-                    )}
-                    {index === currentStep && (
-                      <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
-                        className="ml-auto h-5 w-5 rounded-full border-2 border-[#00b14f] border-t-transparent"
-                      />
-                    )}
-                  </motion.div>
-                ))}
+                {loadingSteps.map((step, index) => {
+                  const Icon = step.icon
+                  return (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ 
+                        opacity: index <= currentStep ? 1 : 0.3,
+                        x: 0
+                      }}
+                      transition={{ delay: index * 0.1 }}
+                      className={`flex items-center gap-3 rounded-xl px-4 py-3 ${
+                        index <= currentStep ? 'bg-[#00b14f]/20' : 'bg-white/5'
+                      }`}
+                    >
+                      <Icon className={`w-5 h-5 ${index <= currentStep ? 'text-white' : 'text-white/40'}`} />
+                      <span className={`text-sm ${index <= currentStep ? 'text-white' : 'text-white/40'}`}>
+                        {step.text}
+                      </span>
+                      {index < currentStep && (
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          className="ml-auto"
+                        >
+                          <svg className="h-5 w-5 text-[#00b14f]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </motion.div>
+                      )}
+                      {index === currentStep && (
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+                          className="ml-auto h-5 w-5 rounded-full border-2 border-[#00b14f] border-t-transparent"
+                        />
+                      )}
+                    </motion.div>
+                  )
+                })}
               </div>
             </motion.div>
           ) : (
@@ -167,9 +170,11 @@ export function AIGameSelectionScreen({ onGameSelected }: AIGameSelectionScreenP
                 className="relative mb-6"
               >
                 <div className="flex h-32 w-32 items-center justify-center rounded-3xl bg-gradient-to-br from-[#00b14f] to-[#00923f] shadow-2xl shadow-[#00b14f]/30">
-                  <span className="text-6xl">
-                    {selectedGame === 'faremon-duel' ? '⚔️' : '🧩'}
-                  </span>
+                  {selectedGame === 'faremon-duel' ? (
+                    <Zap className="w-16 h-16 text-white" />
+                  ) : (
+                    <Route className="w-16 h-16 text-white" />
+                  )}
                 </div>
                 {/* Sparkles */}
                 {[...Array(6)].map((_, i) => (
@@ -183,9 +188,11 @@ export function AIGameSelectionScreen({ onGameSelected }: AIGameSelectionScreenP
                       y: [0, (i < 3 ? -1 : 1) * (30 + Math.random() * 20)],
                     }}
                     transition={{ delay: 0.2 + i * 0.1, duration: 0.8 }}
-                    className="absolute left-1/2 top-1/2 text-2xl"
+                    className="absolute left-1/2 top-1/2"
                   >
-                    ✨
+                    <svg className="w-6 h-6 text-[#00b14f]" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 0L14.59 8.41L23 11L14.59 13.59L12 22L9.41 13.59L1 11L9.41 8.41L12 0Z" />
+                    </svg>
                   </motion.div>
                 ))}
               </motion.div>
@@ -196,7 +203,7 @@ export function AIGameSelectionScreen({ onGameSelected }: AIGameSelectionScreenP
                 transition={{ delay: 0.3 }}
                 className="mb-2 text-2xl font-bold text-white"
               >
-                {selectedGame === 'faremon-duel' ? 'FareMon Duel' : 'Fare Blocks'}
+                {selectedGame === 'faremon-duel' ? 'FareMon Duel' : 'BattleRoute'}
               </motion.h2>
               
               <motion.p
@@ -207,7 +214,7 @@ export function AIGameSelectionScreen({ onGameSelected }: AIGameSelectionScreenP
               >
                 {selectedGame === 'faremon-duel'
                   ? 'A strategic turn-based creature battle'
-                  : 'A strategic route-building puzzle game'}
+                  : 'A strategic route-racing puzzle game'}
               </motion.p>
               
               {/* AI explanation */}
@@ -219,12 +226,14 @@ export function AIGameSelectionScreen({ onGameSelected }: AIGameSelectionScreenP
               >
                 <div className="flex items-start gap-3">
                   <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#00b14f]/30">
-                    <motion.span
+                    <motion.div
                       animate={{ opacity: [1, 0.5, 1] }}
                       transition={{ repeat: Infinity, duration: 1.5 }}
                     >
-                      ✨
-                    </motion.span>
+                      <svg className="w-4 h-4 text-[#00b14f]" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 0L14.59 8.41L23 11L14.59 13.59L12 22L9.41 13.59L1 11L9.41 8.41L12 0Z" />
+                      </svg>
+                    </motion.div>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-[#00b14f]">AI Selection Reason</p>
@@ -248,7 +257,7 @@ export function AIGameSelectionScreen({ onGameSelected }: AIGameSelectionScreenP
                   transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
                   className="h-4 w-4 rounded-full border-2 border-[#00b14f] border-t-transparent"
                 />
-                Loading game…
+                Loading game
               </motion.div>
             </motion.div>
           )}

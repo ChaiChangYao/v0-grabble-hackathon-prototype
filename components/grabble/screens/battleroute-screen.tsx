@@ -1,253 +1,253 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import type { Player } from "@/lib/grabble-types"
 import {
   BattleRouteState,
-  initBattleRoute,
-  claimTile,
-  getValidMoves,
-  checkGameEnd,
-  calculateProgress,
-  BOARD_SIZE,
-  TileType
+  routeAssets,
+  placeRouteAsset,
+  submitRouteAttack,
+  getBattleRoutePlayerPerspective,
+  RouteAsset,
 } from "@/lib/battleroute-engine"
+import { Car, Bike, MapPin, Bus, Package, RotateCw, Target } from "lucide-react"
 
 interface BattleRouteScreenProps {
-  player: Player
-  opponent: Player
   playerId: 1 | 2
-  onGameEnd: (winner: 1 | 2 | 'tie') => void
+  state: BattleRouteState
+  onSelectPath: (pathIndex: number) => void
 }
 
-const TILE_COLORS: Record<TileType, { bg: string; border: string; icon: string }> = {
-  empty: { bg: "bg-gray-100", border: "border-gray-200", icon: "" },
-  player1: { bg: "bg-[#00b14f]", border: "border-[#00923f]", icon: "" },
-  player2: { bg: "bg-[#ff6b00]", border: "border-[#e55a00]", icon: "" },
-  blocked: { bg: "bg-gray-300", border: "border-gray-400", icon: "" },
-  bonus: { bg: "bg-amber-100", border: "border-amber-300", icon: "+" },
-  speedBoost: { bg: "bg-blue-100", border: "border-blue-300", icon: ">" },
+const assetIcons: Record<string, typeof Car> = {
+  van: Bus,
+  shuttle: Car,
+  taxi: Car,
+  bike: Bike,
+  hub: MapPin,
 }
 
-export function BattleRouteScreen({ player, opponent, playerId, onGameEnd }: BattleRouteScreenProps) {
-  const [gameState, setGameState] = useState<BattleRouteState>(() => initBattleRoute())
-  const [selectedTile, setSelectedTile] = useState<{ row: number; col: number } | null>(null)
-  const [validMoves, setValidMoves] = useState<{ row: number; col: number }[]>([])
-  const [gameEnded, setGameEnded] = useState(false)
-  const [turnTimer, setTurnTimer] = useState(10)
-
-  const isMyTurn = gameState.currentTurn === playerId
-
-  // Update valid moves when turn changes
+export function BattleRouteScreen({ playerId, state, onSelectPath }: BattleRouteScreenProps) {
+  const [selectedAsset, setSelectedAsset] = useState<RouteAsset | null>(null)
+  const [isHorizontal, setIsHorizontal] = useState(true)
+  const [hoverCell, setHoverCell] = useState<{ row: number; col: number } | null>(null)
+  
+  const perspective = getBattleRoutePlayerPerspective(state, playerId)
+  const isMyTurn = state.currentTurn === playerId
+  const isPlacementPhase = state.phase === 'placement'
+  const isAttackPhase = state.phase === 'attack'
+  
+  // Auto-select first unplaced asset
   useEffect(() => {
-    if (isMyTurn && !gameEnded) {
-      const moves = getValidMoves(gameState, playerId)
-      setValidMoves(moves)
-    } else {
-      setValidMoves([])
+    if (isPlacementPhase && perspective.assetsToPlace.length > 0 && !selectedAsset) {
+      setSelectedAsset(perspective.assetsToPlace[0])
     }
-  }, [gameState.currentTurn, isMyTurn, gameEnded, gameState, playerId])
-
-  // Turn timer
-  useEffect(() => {
-    if (gameEnded) return
-
-    const interval = setInterval(() => {
-      setTurnTimer(prev => {
-        if (prev <= 1) {
-          // Auto-move on timeout
-          if (isMyTurn && validMoves.length > 0) {
-            const randomMove = validMoves[Math.floor(Math.random() * validMoves.length)]
-            handleTileClick(randomMove.row, randomMove.col)
-          }
-          return 10
-        }
-        return prev - 1
-      })
-    }, 1000)
-
-    return () => clearInterval(interval)
-  }, [isMyTurn, validMoves, gameEnded])
-
-  // Reset timer on turn change
-  useEffect(() => {
-    setTurnTimer(10)
-  }, [gameState.currentTurn])
-
-  // Simulate opponent moves
-  useEffect(() => {
-    if (!isMyTurn && !gameEnded) {
-      const opponentMoves = getValidMoves(gameState, playerId === 1 ? 2 : 1)
-      if (opponentMoves.length > 0) {
-        const timer = setTimeout(() => {
-          const move = opponentMoves[Math.floor(Math.random() * opponentMoves.length)]
-          const newState = claimTile(gameState, move.row, move.col, playerId === 1 ? 2 : 1)
-          setGameState(newState)
-          
-          const result = checkGameEnd(newState)
-          if (result.ended) {
-            setGameEnded(true)
-            setTimeout(() => onGameEnd(result.winner!), 1500)
-          }
-        }, 800 + Math.random() * 600)
-        return () => clearTimeout(timer)
+  }, [isPlacementPhase, perspective.assetsToPlace, selectedAsset])
+  
+  const handleCellClick = (row: number, col: number) => {
+    if (isPlacementPhase && selectedAsset) {
+      // Placement mode - send coordinates as encoded path index
+      const encodedIndex = row * 100 + col * 10 + (isHorizontal ? 1 : 0)
+      onSelectPath(encodedIndex)
+      setSelectedAsset(null)
+    } else if (isAttackPhase && isMyTurn) {
+      // Attack mode
+      if (perspective.opponentGrid[row][col] === 'unknown') {
+        const encodedIndex = 1000 + row * 10 + col
+        onSelectPath(encodedIndex)
       }
     }
-  }, [gameState.currentTurn, isMyTurn, gameEnded, gameState, playerId, onGameEnd])
-
-  const handleTileClick = useCallback((row: number, col: number) => {
-    if (!isMyTurn || gameEnded) return
+  }
+  
+  const toggleRotation = () => setIsHorizontal(!isHorizontal)
+  
+  // Render own grid (for placement) or opponent grid (for attack)
+  const renderGrid = (gridType: 'own' | 'opponent') => {
+    const grid = gridType === 'own' ? perspective.ownGrid : perspective.opponentGrid
+    const gridSize = 6
     
-    const isValid = validMoves.some(m => m.row === row && m.col === col)
-    if (!isValid) return
-
-    const newState = claimTile(gameState, row, col, playerId)
-    setGameState(newState)
-    setSelectedTile(null)
-
-    const result = checkGameEnd(newState)
-    if (result.ended) {
-      setGameEnded(true)
-      setTimeout(() => onGameEnd(result.winner!), 1500)
-    }
-  }, [isMyTurn, gameEnded, validMoves, gameState, playerId, onGameEnd])
-
-  const progress = calculateProgress(gameState)
-  const myProgress = playerId === 1 ? progress.player1 : progress.player2
-  const opponentProgress = playerId === 1 ? progress.player2 : progress.player1
-
-  return (
-    <div className="h-full flex flex-col bg-gradient-to-b from-gray-50 to-gray-100">
-      {/* Header */}
-      <div className="px-4 pt-3 pb-2">
-        <div className="flex items-center justify-between mb-2">
-          <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">BattleRoute</div>
-          <div className="flex items-center gap-2">
-            <div className={cn(
-              "px-2 py-0.5 rounded text-xs font-medium",
-              isMyTurn ? "bg-[#00b14f] text-white" : "bg-gray-200 text-gray-600"
-            )}>
-              {isMyTurn ? "Your Turn" : "Opponent"}
-            </div>
-            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold">
-              {turnTimer}
-            </div>
-          </div>
-        </div>
-
-        {/* Progress bars */}
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2">
-            <div className="w-16 text-xs font-medium text-gray-700 truncate">{player.name}</div>
-            <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-              <motion.div
-                className="h-full bg-[#00b14f]"
-                initial={{ width: 0 }}
-                animate={{ width: `${myProgress}%` }}
-                transition={{ duration: 0.3 }}
-              />
-            </div>
-            <div className="w-8 text-xs font-bold text-[#00b14f]">{Math.round(myProgress)}%</div>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-16 text-xs font-medium text-gray-700 truncate">{opponent.name}</div>
-            <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-              <motion.div
-                className="h-full bg-[#ff6b00]"
-                initial={{ width: 0 }}
-                animate={{ width: `${opponentProgress}%` }}
-                transition={{ duration: 0.3 }}
-              />
-            </div>
-            <div className="w-8 text-xs font-bold text-[#ff6b00]">{Math.round(opponentProgress)}%</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Game Board */}
-      <div className="flex-1 flex items-center justify-center px-3 py-2">
-        <div className="bg-white rounded-xl shadow-lg p-2 border border-gray-200">
-          <div 
-            className="grid gap-1"
-            style={{ gridTemplateColumns: `repeat(${BOARD_SIZE}, 1fr)` }}
-          >
-            {gameState.board.map((row, rowIdx) =>
-              row.map((tile, colIdx) => {
-                const isValidMove = validMoves.some(m => m.row === rowIdx && m.col === colIdx)
-                const colors = TILE_COLORS[tile]
-                const isStart = (rowIdx === 0 && colIdx === 0) || (rowIdx === BOARD_SIZE - 1 && colIdx === BOARD_SIZE - 1)
-                
-                return (
-                  <motion.button
-                    key={`${rowIdx}-${colIdx}`}
-                    className={cn(
-                      "w-7 h-7 rounded border-2 flex items-center justify-center text-xs font-bold transition-all",
-                      colors.bg,
-                      colors.border,
-                      isValidMove && isMyTurn && "ring-2 ring-[#00b14f] ring-offset-1 cursor-pointer",
-                      !isValidMove && "cursor-default",
-                      isStart && tile === "empty" && "border-dashed"
-                    )}
-                    onClick={() => handleTileClick(rowIdx, colIdx)}
-                    whileTap={isValidMove ? { scale: 0.9 } : {}}
-                    animate={isValidMove ? { scale: [1, 1.05, 1] } : {}}
-                    transition={isValidMove ? { repeat: Infinity, duration: 1.5 } : {}}
-                  >
-                    {tile === "player1" && (
-                      <div className="w-4 h-4 rounded-full bg-white/30" />
-                    )}
-                    {tile === "player2" && (
-                      <div className="w-4 h-4 rounded-full bg-white/30" />
-                    )}
-                    {colors.icon && (
-                      <span className="text-amber-600">{colors.icon}</span>
-                    )}
-                  </motion.button>
-                )
-              })
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom info */}
-      <div className="px-4 pb-4">
-        <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between text-xs">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 rounded bg-[#00b14f]" />
-                <span className="text-gray-600">You</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 rounded bg-[#ff6b00]" />
-                <span className="text-gray-600">Opponent</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 rounded bg-amber-100 border border-amber-300" />
-                <span className="text-gray-600">Bonus</span>
-              </div>
-            </div>
-            <div className="text-gray-500">
-              Round {gameState.round}
-            </div>
-          </div>
-          
-          <AnimatePresence mode="wait">
-            {isMyTurn && !gameEnded && (
-              <motion.p
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -5 }}
-                className="text-xs text-gray-500 mt-2 text-center"
+    return (
+      <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)` }}>
+        {Array(gridSize).fill(null).map((_, rowIdx) =>
+          Array(gridSize).fill(null).map((_, colIdx) => {
+            const cell = grid[rowIdx][colIdx]
+            const isHover = hoverCell?.row === rowIdx && hoverCell?.col === colIdx
+            
+            let bgColor = 'bg-gray-100'
+            let borderColor = 'border-gray-200'
+            let content = null
+            
+            if (gridType === 'own') {
+              if (cell === 'asset') {
+                bgColor = playerId === 1 ? 'bg-[#00b14f]' : 'bg-[#ff6b00]'
+                borderColor = playerId === 1 ? 'border-[#00923f]' : 'border-[#e55a00]'
+              } else if (cell === 'hit') {
+                bgColor = 'bg-red-500'
+                borderColor = 'border-red-600'
+                content = <Target className="w-3 h-3 text-white" />
+              } else if (cell === 'miss') {
+                bgColor = 'bg-gray-300'
+                borderColor = 'border-gray-400'
+              }
+            } else {
+              if (cell === 'hit') {
+                bgColor = 'bg-[#00b14f]'
+                borderColor = 'border-[#00923f]'
+                content = <Target className="w-3 h-3 text-white" />
+              } else if (cell === 'miss') {
+                bgColor = 'bg-gray-300'
+                borderColor = 'border-gray-400'
+              }
+            }
+            
+            const canClick = gridType === 'opponent' && cell === 'unknown' && isMyTurn && isAttackPhase
+            
+            return (
+              <motion.button
+                key={`${rowIdx}-${colIdx}`}
+                className={cn(
+                  "w-7 h-7 rounded border-2 flex items-center justify-center transition-all",
+                  bgColor,
+                  borderColor,
+                  canClick && "ring-2 ring-[#00b14f]/50 cursor-pointer hover:ring-[#00b14f]",
+                  !canClick && gridType === 'opponent' && "cursor-default"
+                )}
+                onClick={() => handleCellClick(rowIdx, colIdx)}
+                onMouseEnter={() => setHoverCell({ row: rowIdx, col: colIdx })}
+                onMouseLeave={() => setHoverCell(null)}
+                whileTap={canClick ? { scale: 0.9 } : {}}
               >
-                Tap a highlighted tile to claim territory
-              </motion.p>
-            )}
-          </AnimatePresence>
+                {content}
+              </motion.button>
+            )
+          })
+        )}
+      </div>
+    )
+  }
+  
+  return (
+    <div className="h-full flex flex-col bg-gradient-to-b from-[#1a1a2e] to-[#16213e]">
+      {/* Header */}
+      <div className="px-4 pt-3 pb-2 border-b border-white/10">
+        <div className="flex items-center justify-between">
+          <div className="text-sm font-semibold text-white">BattleRoute</div>
+          <div className={cn(
+            "px-2 py-0.5 rounded text-xs font-medium",
+            isMyTurn ? "bg-[#00b14f] text-white" : "bg-white/20 text-white/70"
+          )}>
+            {isPlacementPhase 
+              ? (perspective.assetsToPlace.length > 0 ? 'Place Assets' : 'Waiting')
+              : (isMyTurn ? 'Your Attack' : 'Opponent')
+            }
+          </div>
+        </div>
+      </div>
+      
+      {/* Game Content */}
+      <div className="flex-1 overflow-auto p-4">
+        <AnimatePresence mode="wait">
+          {isPlacementPhase ? (
+            <motion.div
+              key="placement"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="space-y-4"
+            >
+              {/* Asset selection */}
+              {perspective.assetsToPlace.length > 0 && (
+                <div className="bg-white/10 rounded-xl p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs text-white/70">Select asset to place</p>
+                    <button
+                      onClick={toggleRotation}
+                      className="flex items-center gap-1 text-xs text-[#00b14f] hover:text-[#00b14f]/80"
+                    >
+                      <RotateCw className="w-3 h-3" />
+                      {isHorizontal ? 'Horizontal' : 'Vertical'}
+                    </button>
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    {perspective.assetsToPlace.map(asset => {
+                      const Icon = assetIcons[asset.icon] || Car
+                      return (
+                        <button
+                          key={asset.id}
+                          onClick={() => setSelectedAsset(asset)}
+                          className={cn(
+                            "flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs transition-all",
+                            selectedAsset?.id === asset.id
+                              ? "bg-[#00b14f] text-white"
+                              : "bg-white/10 text-white/70 hover:bg-white/20"
+                          )}
+                        >
+                          <Icon className="w-3 h-3" />
+                          <span>{asset.name}</span>
+                          <span className="text-[10px] opacity-70">({asset.length})</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+              
+              {/* Own grid for placement */}
+              <div className="bg-white rounded-xl p-3 shadow-lg">
+                <p className="text-xs text-gray-500 mb-2 text-center">Your Routes</p>
+                {renderGrid('own')}
+              </div>
+              
+              {perspective.assetsToPlace.length === 0 && (
+                <div className="text-center text-white/70 text-sm py-4">
+                  Waiting for opponent to finish placement...
+                </div>
+              )}
+            </motion.div>
+          ) : (
+            <motion.div
+              key="attack"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="space-y-4"
+            >
+              {/* Opponent grid for attack */}
+              <div className="bg-white rounded-xl p-3 shadow-lg">
+                <p className="text-xs text-gray-500 mb-2 text-center">
+                  {isMyTurn ? 'Tap to attack' : 'Opponent attacking...'}
+                </p>
+                {renderGrid('opponent')}
+              </div>
+              
+              {/* Own grid (smaller) */}
+              <div className="bg-white/10 rounded-xl p-3">
+                <p className="text-xs text-white/50 mb-2 text-center">Your Routes</p>
+                <div className="transform scale-75 origin-center">
+                  {renderGrid('own')}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+      
+      {/* Footer */}
+      <div className="px-4 pb-4">
+        <div className="bg-white/10 rounded-xl p-3">
+          <div className="flex items-center justify-between text-xs text-white/70">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded bg-[#00b14f]" />
+                <span>Hit</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded bg-gray-400" />
+                <span>Miss</span>
+              </div>
+            </div>
+            <span>Attacks: {state.attackLog.length}</span>
+          </div>
         </div>
       </div>
     </div>

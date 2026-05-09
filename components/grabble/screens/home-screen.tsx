@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion'
 import { MapBackground } from '../map-background'
 import { Player } from '@/lib/grabble-types'
+import { Car, Bike, ShoppingBag, CreditCard, Utensils, Clock, ChevronRight, Search } from 'lucide-react'
 
 interface HomeScreenProps {
   player: Player
@@ -11,11 +12,11 @@ interface HomeScreenProps {
 
 export function HomeScreen({ player, onContinue }: HomeScreenProps) {
   const services = [
-    { icon: '🚗', label: 'Car', color: '#00b14f' },
-    { icon: '🏍️', label: 'Bike', color: '#00b14f' },
-    { icon: '🍔', label: 'Food', color: '#ff6b00' },
-    { icon: '📦', label: 'Mart', color: '#00b14f' },
-    { icon: '💳', label: 'Pay', color: '#00b14f' },
+    { icon: Car, label: 'Car', color: '#00b14f' },
+    { icon: Bike, label: 'Bike', color: '#00b14f' },
+    { icon: Utensils, label: 'Food', color: '#ff6b00' },
+    { icon: ShoppingBag, label: 'Mart', color: '#00b14f' },
+    { icon: CreditCard, label: 'Pay', color: '#00b14f' },
   ]
 
   return (
@@ -47,20 +48,13 @@ export function HomeScreen({ player, onContinue }: HomeScreenProps) {
             className="flex w-full items-center gap-3 rounded-xl bg-[#f8f9fa] px-4 py-3.5 shadow-sm transition-all hover:bg-[#f1f3f5]"
           >
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#00b14f]">
-              <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <circle cx="11" cy="11" r="8" strokeWidth="2" />
-                <path strokeLinecap="round" strokeWidth="2" d="M21 21l-4.35-4.35" />
-              </svg>
+              <Search className="h-4 w-4 text-white" />
             </div>
             <span className="text-[#6c757d]">Where to?</span>
             <div className="ml-auto flex items-center gap-2 rounded-lg bg-white px-3 py-1.5 shadow-sm">
-              <svg className="h-4 w-4 text-[#00b14f]" viewBox="0 0 24 24" fill="currentColor">
-                <circle cx="12" cy="12" r="4" />
-              </svg>
+              <div className="h-2 w-2 rounded-full bg-[#00b14f]" />
               <span className="text-sm font-medium text-[#212529]">Now</span>
-              <svg className="h-3 w-3 text-[#6c757d]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
+              <ChevronRight className="h-3 w-3 text-[#6c757d]" />
             </div>
           </motion.button>
         </div>
@@ -68,21 +62,27 @@ export function HomeScreen({ player, onContinue }: HomeScreenProps) {
         {/* Services */}
         <div className="px-4 py-4">
           <div className="flex justify-between">
-            {services.map((service, index) => (
-              <motion.button
-                key={service.label}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 + index * 0.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="flex flex-col items-center gap-2"
-              >
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#f8f9fa] shadow-sm">
-                  <span className="text-2xl">{service.icon}</span>
-                </div>
-                <span className="text-xs font-medium text-[#495057]">{service.label}</span>
-              </motion.button>
-            ))}
+            {services.map((service, index) => {
+              const Icon = service.icon
+              return (
+                <motion.button
+                  key={service.label}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 + index * 0.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="flex flex-col items-center gap-2"
+                >
+                  <div 
+                    className="flex h-14 w-14 items-center justify-center rounded-2xl shadow-sm"
+                    style={{ backgroundColor: `${service.color}15` }}
+                  >
+                    <Icon className="h-6 w-6" style={{ color: service.color }} />
+                  </div>
+                  <span className="text-xs font-medium text-[#495057]">{service.label}</span>
+                </motion.button>
+              )
+            })}
           </div>
         </div>
         
@@ -99,22 +99,18 @@ export function HomeScreen({ player, onContinue }: HomeScreenProps) {
               className="flex w-full items-center gap-3 rounded-xl p-3 transition-colors hover:bg-[#f8f9fa]"
             >
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f1f3f5]">
-                <svg className="h-5 w-5 text-[#6c757d]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+                <Clock className="h-5 w-5 text-[#6c757d]" />
               </div>
               <div className="flex-1 text-left">
                 <p className="font-medium text-[#212529]">{player.destination}</p>
                 <p className="text-sm text-[#6c757d]">Singapore</p>
               </div>
-              <svg className="h-5 w-5 text-[#ced4da]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
+              <ChevronRight className="h-5 w-5 text-[#ced4da]" />
             </motion.button>
           </div>
         </div>
         
-        {/* Promo banner */}
+        {/* Promo banner - Clean illustration style */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -126,13 +122,15 @@ export function HomeScreen({ player, onContinue }: HomeScreenProps) {
               <p className="text-xs font-medium text-white/80">New Feature</p>
               <p className="font-semibold text-white">Try Grabble & save 50%</p>
             </div>
-            <motion.div
-              animate={{ rotate: [0, 10, -10, 0] }}
-              transition={{ repeat: Infinity, duration: 2 }}
-              className="text-3xl"
-            >
-              🎮
-            </motion.div>
+            {/* Clean illustration instead of emoji */}
+            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+              <svg viewBox="0 0 32 32" className="w-8 h-8 text-white" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <circle cx="16" cy="16" r="10" />
+                <path d="M12 16h8M16 12v8" strokeLinecap="round" />
+                <circle cx="12" cy="16" r="2" fill="currentColor" stroke="none" />
+                <circle cx="20" cy="16" r="2" fill="currentColor" stroke="none" />
+              </svg>
+            </div>
           </div>
         </motion.div>
       </motion.div>

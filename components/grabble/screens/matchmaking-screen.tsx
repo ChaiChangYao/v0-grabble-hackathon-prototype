@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Player } from '@/lib/grabble-types'
+import { Search, Target, CheckCircle2, Sparkles } from 'lucide-react'
 
 interface MatchmakingScreenProps {
   player: Player
@@ -64,17 +65,16 @@ export function MatchmakingScreen({ player, opponent, matchedSimilarity, onMatch
                   />
                 </div>
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <motion.span
+                  <motion.div
                     animate={{ scale: [1, 1.1, 1] }}
                     transition={{ repeat: Infinity, duration: 1.5 }}
-                    className="text-3xl"
                   >
-                    🔍
-                  </motion.span>
+                    <Search className="w-8 h-8 text-[#00b14f]" />
+                  </motion.div>
                 </div>
               </div>
               
-              <h2 className="mb-2 text-xl font-bold text-[#212529]">Finding rider with similar fare…</h2>
+              <h2 className="mb-2 text-xl font-bold text-[#212529]">Finding rider with similar fare</h2>
               <p className="text-center text-sm text-[#6c757d]">
                 AI is searching for a rider with a fare value within 1% of yours
               </p>
@@ -101,7 +101,7 @@ export function MatchmakingScreen({ player, opponent, matchedSimilarity, onMatch
                 transition={{ type: 'spring', stiffness: 300, damping: 15 }}
                 className="mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-[#00b14f]"
               >
-                <span className="text-5xl">🎯</span>
+                <Target className="w-12 h-12 text-white" />
               </motion.div>
               
               <h2 className="mb-2 text-xl font-bold text-[#212529]">Match Found!</h2>
@@ -161,9 +161,7 @@ export function MatchmakingScreen({ player, opponent, matchedSimilarity, onMatch
                 transition={{ type: 'spring', stiffness: 300, damping: 15 }}
                 className="mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-[#00b14f] to-[#00923f]"
               >
-                <svg className="h-12 w-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                </svg>
+                <CheckCircle2 className="w-12 h-12 text-white" />
               </motion.div>
               
               <h2 className="mb-2 text-xl font-bold text-[#212529]">Both Riders Accepted!</h2>
@@ -175,12 +173,12 @@ export function MatchmakingScreen({ player, opponent, matchedSimilarity, onMatch
                 transition={{ delay: 0.2 }}
                 className="mb-4 flex items-center gap-2 rounded-full bg-[#e6f7ed] px-4 py-2"
               >
-                <motion.span
+                <motion.div
                   animate={{ opacity: [1, 0.5, 1] }}
                   transition={{ repeat: Infinity, duration: 1.5 }}
                 >
-                  ✨
-                </motion.span>
+                  <Sparkles className="w-4 h-4 text-[#00b14f]" />
+                </motion.div>
                 <span className="text-sm font-medium text-[#00923f]">
                   {matchedSimilarity}% fare similarity
                 </span>

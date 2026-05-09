@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { Player, GameType } from '@/lib/grabble-types'
+import { Trophy, Frown, Sparkles, ArrowDown, ArrowUp } from 'lucide-react'
 
 interface ResultsScreenProps {
   playerId: 1 | 2
@@ -23,10 +24,10 @@ export function ResultsScreen({ playerId, player, opponent, winner, gameType, on
   const aiSummary = isWinner
     ? gameType === 'faremon-duel'
       ? `${player.name} won by timing strategic moves perfectly. The opponent's shield expired at the worst moment, allowing a decisive final strike.`
-      : `${player.name} won by building efficient route networks and maintaining lower surge pressure throughout the game.`
+      : `${player.name} won by choosing optimal routes and avoiding traffic hazards. Superior strategy led to faster completion.`
     : gameType === 'faremon-duel'
       ? `${opponent.name} won by using a balanced strategy of defense and offense. Your high-risk moves backfired at critical moments.`
-      : `${opponent.name} won by clearing more rows and columns while keeping surge pressure under control.`
+      : `${opponent.name} won by navigating routes more efficiently and avoiding surge zones throughout the race.`
 
   return (
     <div className={`flex h-full flex-col ${isWinner ? 'bg-gradient-to-b from-[#00b14f] to-[#00923f]' : 'bg-gradient-to-b from-[#ff6b00] to-[#e65c00]'}`}>
@@ -69,13 +70,16 @@ export function ResultsScreen({ playerId, player, opponent, winner, gameType, on
           transition={{ type: 'spring', stiffness: 200, damping: 15 }}
           className="mb-6 flex h-28 w-28 items-center justify-center rounded-full bg-white shadow-2xl"
         >
-          <motion.span
+          <motion.div
             animate={{ scale: [1, 1.1, 1] }}
             transition={{ repeat: Infinity, duration: 1.5 }}
-            className="text-6xl"
           >
-            {isWinner ? '🏆' : '😔'}
-          </motion.span>
+            {isWinner ? (
+              <Trophy className="w-14 h-14 text-yellow-500" />
+            ) : (
+              <Frown className="w-14 h-14 text-gray-400" />
+            )}
+          </motion.div>
         </motion.div>
         
         {/* Title */}
@@ -125,12 +129,12 @@ export function ResultsScreen({ playerId, player, opponent, winner, gameType, on
             <div className="mt-2 flex items-center gap-1">
               {isWinner ? (
                 <>
-                  <span className="text-sm text-[#00b14f]">↓</span>
+                  <ArrowDown className="w-4 h-4 text-[#00b14f]" />
                   <span className="text-sm text-[#00b14f]">You saved ${savings.toFixed(2)}</span>
                 </>
               ) : (
                 <>
-                  <span className="text-sm text-[#ff6b00]">↑</span>
+                  <ArrowUp className="w-4 h-4 text-[#ff6b00]" />
                   <span className="text-sm text-[#ff6b00]">${savings.toFixed(2)} extra</span>
                 </>
               )}
@@ -153,12 +157,12 @@ export function ResultsScreen({ playerId, player, opponent, winner, gameType, on
         >
           <div className="flex items-start gap-3">
             <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-white/20">
-              <motion.span
+              <motion.div
                 animate={{ opacity: [1, 0.5, 1] }}
                 transition={{ repeat: Infinity, duration: 1.5 }}
               >
-                ✨
-              </motion.span>
+                <Sparkles className="w-4 h-4 text-white" />
+              </motion.div>
             </div>
             <div>
               <p className="text-xs font-medium text-white/80">AI Summary</p>
