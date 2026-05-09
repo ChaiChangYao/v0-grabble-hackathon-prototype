@@ -95,7 +95,7 @@ export default function RoomPage() {
 
   const shareUrl = useMemo(() => {
     if (typeof window === 'undefined') return ''
-    return `${window.location.origin}/room/${roomCode}`
+    return `${window.location.origin}/?roomCode=${roomCode}`
   }, [roomCode])
 
   const copyShare = async () => {

@@ -38,8 +38,8 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ roomCode: 
   if (
     fs.player1Team.selectedTypes.length !== 2 ||
     fs.player2Team.selectedTypes.length !== 2 ||
-    fs.player1Team.locked ||
-    fs.player2Team.locked
+    !fs.player1Team.locked ||
+    !fs.player2Team.locked
   ) {
     return NextResponse.json({ error: 'TYPES_NOT_READY' }, { status: 400 })
   }

@@ -261,8 +261,8 @@ export function GrabbleDemo(props: GrabbleDemoProps = {}) {
     if (
       fs.player1Team.selectedTypes.length !== 2 ||
       fs.player2Team.selectedTypes.length !== 2 ||
-      fs.player1Team.locked ||
-      fs.player2Team.locked
+      !fs.player1Team.locked ||
+      !fs.player2Team.locked
     ) {
       return
     }
@@ -652,7 +652,16 @@ export function GrabbleDemo(props: GrabbleDemoProps = {}) {
   const handleLockInTeam = useCallback(
     async (playerId: 1 | 2) => {
       if (isRealRoom) {
-        toast.info('Pick two types each. The host generates both teams automatically when ready.')
+        setState((prev) => {
+          if (!prev.fareMonState) return prev
+          const next = structuredClone(prev.fareMonState)
+          const team = playerId === 1 ? next.player1Team : next.player2Team
+          if (team.selectedTypes.length !== 2 || team.locked) return prev
+          team.locked = true
+          if (playerId === 1) next.player1Team = team
+          else next.player2Team = team
+          return { ...prev, fareMonState: next }
+        })
         return
       }
       const fs = stateRef.current.fareMonState
