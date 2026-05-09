@@ -137,6 +137,22 @@ export interface FareMonTeam {
   locked: boolean
 }
 
+export interface GeneratedFareMonImageSet {
+  faremonId: string
+  visualIdentity: string
+  frontPrompt: string
+  backPrompt: string
+  frontImageUrl: string
+  backImageUrl: string
+}
+
+export interface FareMonGeneratedImages {
+  backgroundImageUrl: string
+  backgroundPrompt: string
+  player1: GeneratedFareMonImageSet
+  player2: GeneratedFareMonImageSet
+}
+
 export type PlayerActionKind = 'move' | 'switch'
 
 export interface FareMonBattleState {
@@ -157,4 +173,8 @@ export interface FareMonBattleState {
   winner: 1 | 2 | null
   backgroundPrompt: string
   arenaPrompt: string
+  generatedImages?: FareMonGeneratedImages | null
+  imageGenerationStarted?: boolean
+  imageGenerationCompleted?: boolean
+  imageGenerationError?: string | null
 }

@@ -24,6 +24,15 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
+## Image Generation
+
+FareMon Duel image generation requires a server-side image model configured through the OpenAI API or Vercel AI Gateway. If `IMAGE_MODEL` or the server-side API key is missing, the app will stop and request configuration instead of silently using fake images.
+
+Production currently expects:
+
+- `OPENAI_API_KEY`
+- `IMAGE_MODEL=gpt-image-1`
+
 ## Learn More
 
 To learn more, take a look at the following resources:

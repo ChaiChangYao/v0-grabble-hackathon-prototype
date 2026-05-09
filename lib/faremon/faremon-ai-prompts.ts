@@ -1,4 +1,4 @@
-import type { FareMonType } from './types'
+import type { FareMon, FareMonType } from './types'
 
 export interface RouteContextInput {
   pickup: string
@@ -141,6 +141,104 @@ export function buildFareMonCreatureImagePrompts(faremon: {
   }
 }
 
+function typeLine(primaryType: string, secondaryType?: string | null): string {
+  return `${primaryType}${secondaryType ? `/${secondaryType}` : ''}`
+}
+
+function defaultShapeForType(type: string): string {
+  const lower = type.toLowerCase()
+  if (lower === 'dragon') return 'long serpentine dragon-like ride creature'
+  if (lower === 'electric') return 'compact angular lightning shuttle creature'
+  if (lower === 'water') return 'sleek aquatic taxi-creature with flowing fins'
+  if (lower === 'fire') return 'nimble flame-route courier creature'
+  if (lower === 'grass') return 'leafy garden-interchange transport creature'
+  if (lower === 'ice') return 'crystalline airport-runway glider creature'
+  return 'original ride-route battle creature'
+}
+
+export function buildFareMonVisualIdentity(faremon: FareMon): string {
+  const sec = faremon.secondaryType ? ` with ${faremon.secondaryType} accents` : ''
+  const existing = faremon.visualIdentity?.trim()
+  if (existing) return existing
+  return `${faremon.name} is a ${defaultShapeForType(
+    faremon.primaryType,
+  )} with ${faremon.primaryType}${sec} elemental traits, neon green route-line markings, meter-like eyes, a compact readable silhouette, transport and road-map motifs, and a confident battle-ready personality.`
+}
+
+export function buildFareMonFrontSpritePrompt(faremon: FareMon): string {
+  const visualIdentity = buildFareMonVisualIdentity(faremon)
+  return `Create a 16-bit pixel art creature battle sprite for an original handheld monster-battle style game.
+
+Creature:
+${faremon.name}
+
+Type:
+${typeLine(faremon.primaryType, faremon.secondaryType)}
+
+Visual Identity:
+${visualIdentity}
+
+Camera Angle:
+Front-facing 3/4 view, opponent-side sprite, creature looking toward the player.
+
+Style:
+Clean 16-bit pixel art.
+Vibrant limited color palette.
+Readable silhouette.
+Compact mobile battle sprite.
+Slight idle battle pose.
+Transparent background.
+No ground platform.
+No text.
+No logo.
+No UI.
+No HP bar.
+No buttons.
+No copyrighted characters.
+No existing game franchise references.
+
+Important:
+The creature must match the same visual identity used for the back sprite.`
+}
+
+export function buildFareMonBackSpritePrompt(faremon: FareMon): string {
+  const visualIdentity = buildFareMonVisualIdentity(faremon)
+  return `Create a 16-bit pixel art creature battle sprite for an original handheld monster-battle style game.
+
+Creature:
+${faremon.name}
+
+Type:
+${typeLine(faremon.primaryType, faremon.secondaryType)}
+
+Visual Identity:
+${visualIdentity}
+
+Camera Angle:
+Back-facing 3/4 view, player-side sprite, creature looking toward the opponent.
+
+Style:
+Clean 16-bit pixel art.
+Vibrant limited color palette.
+Readable silhouette.
+Compact mobile battle sprite.
+Slight idle battle pose.
+Transparent background.
+No ground platform.
+No text.
+No logo.
+No UI.
+No HP bar.
+No buttons.
+No copyrighted characters.
+No existing game franchise references.
+
+Important:
+This must be the same creature as the front sprite.
+Use the same body shape, color palette, markings, silhouette, and elemental traits.
+Only the camera angle changes.`
+}
+
 export interface BattleBackgroundInput {
   environmentTheme: string
   platformShape: string
@@ -152,11 +250,66 @@ export interface BattleBackgroundInput {
   backgroundColors: string
 }
 
+export function buildEnvironmentThemeFromTypes(
+  playerType: FareMonType,
+  opponentType: FareMonType,
+  routeContext?: Partial<RouteContextInput>,
+): BattleBackgroundInput {
+  const pair = [playerType, opponentType].sort().join('|')
+  const city = routeContext?.city || 'Singapore'
+  if (pair === 'Dragon|Ice') {
+    return {
+      environmentTheme: 'Dragon storm expressway meets frozen airport runway',
+      platformShape: 'circular stone route platform',
+      foregroundPlatform: 'dark green roadside platform edge',
+      platformSurfaceDetail: 'cracked stone route platform with icy edges and subtle scale markings',
+      platformEdgeDetail: 'raised stone rim with neon green lane markings',
+      backgroundEnvironmentTheme: 'stormy Singapore expressway fading into frozen airport lights',
+      platformColors: 'dark stone grey, icy blue, neon green, muted purple',
+      backgroundColors: 'storm blue, frozen cyan, deep purple, wet asphalt grey',
+    }
+  }
+  if (pair === 'Fire|Grass') {
+    return {
+      environmentTheme: 'Peak-hour flame route beside overgrown garden interchange',
+      platformShape: 'circular asphalt route platform',
+      foregroundPlatform: 'dark green roadside platform edge',
+      platformSurfaceDetail: 'warm cracked asphalt with grass tufts and glowing red lane marks',
+      platformEdgeDetail: 'raised curb rim with neon green lane markings',
+      backgroundEnvironmentTheme: 'urban expressway with green roadside foliage and heat haze',
+      platformColors: 'charcoal asphalt, warm orange, bright green',
+      backgroundColors: 'sunset orange, deep green, grey road tones',
+    }
+  }
+  if (pair === 'Electric|Water') {
+    return {
+      environmentTheme: 'Rainy neon expressway with electric storm puddles',
+      platformShape: 'circular wet asphalt route platform',
+      foregroundPlatform: 'dark green roadside platform edge',
+      platformSurfaceDetail: 'wet reflective asphalt with electric lane markings',
+      platformEdgeDetail: 'raised curb rim with neon green lane markings',
+      backgroundEnvironmentTheme: 'rain-soaked city road with lightning-lit traffic bands',
+      platformColors: 'wet grey, electric yellow, neon green',
+      backgroundColors: 'deep navy, cyan rain, yellow lightning, asphalt grey',
+    }
+  }
+  return {
+    environmentTheme: `${playerType} and ${opponentType} ${city} ride-hailing battle stage`,
+    platformShape: 'circular stone route platform',
+    foregroundPlatform: 'dark green roadside platform edge',
+    platformSurfaceDetail: 'cracked glowing route stone with subtle elemental markings',
+    platformEdgeDetail: 'raised stone rim with neon green lane markings',
+    backgroundEnvironmentTheme: `${city} ride-hailing route landscape with distant traffic bands, wet roads, and glowing route lights`,
+    platformColors: 'dark stone grey, neon green, muted gold',
+    backgroundColors: 'deep blue, storm purple, wet asphalt grey, green highlights',
+  }
+}
+
 export function buildBattleBackgroundPrompt(br: BattleBackgroundInput): string {
-  return `[${br.environmentTheme}] 16-bit Pixel Art Battle Stage
+  return `${br.environmentTheme} 16-bit Pixel Art Battle Stage
 
 Scene Type:
-A 16-bit pixel art battle stage, rendered in a clean and vibrant retro handheld monster-battle style.
+A 16-bit pixel art battle stage, rendered in a classic, clean, vibrant handheld monster-battle background style.
 
 Composition:
 The perspective is a shallow-angle isometric view, with a central, raised ${br.platformShape} in the mid-ground. At the very bottom edge of the frame, there is a small edge of ${br.foregroundPlatform} to imply depth.
@@ -171,5 +324,13 @@ Color Palette:
 The scene uses a limited, specific, and vibrant color palette. The core colors for the platform are ${br.platformColors}, and the colors for the background are ${br.backgroundColors}.
 
 Restrictions:
-No text. No logos. No UI. No HP bars. No buttons. No copyrighted characters. No real brand marks.`
+No text.
+No logos.
+No UI.
+No HP bars.
+No buttons.
+No copyrighted characters.
+No real brand marks.
+No existing game franchise references.
+Background only.`
 }

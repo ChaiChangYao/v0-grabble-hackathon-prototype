@@ -40,6 +40,7 @@ interface FareMonBattleScreenProps {
   onSelectMove: (move: FareMonMove) => void
   onSwitch: () => void
   waitingForOpponent: boolean
+  requireGeneratedImages?: boolean
 }
 
 const TYPE_ACCENTS: Record<
@@ -142,11 +143,13 @@ function CreaturePanel({
   faremon,
   isOpponent,
   showTypes,
+  requireGeneratedImages,
 }: {
   viewerPlayerId: 1 | 2
   faremon: FareMon
   isOpponent: boolean
   showTypes: boolean
+  requireGeneratedImages?: boolean
 }) {
   const hpPercent = (faremon.currentHP / faremon.maxHP) * 100
   const hpColor = hpPercent > 50 ? '#00b14f' : hpPercent > 25 ? '#ff6b00' : '#dc3545'
@@ -170,6 +173,10 @@ function CreaturePanel({
           {spriteUrl ? (
             // eslint-disable-next-line @next/next/no-img-element -- data URLs from AI
             <img src={spriteUrl} alt="" className="h-full w-full object-cover" />
+          ) : requireGeneratedImages ? (
+            <span className="px-1 text-center text-[8px] font-semibold leading-tight text-red-200">
+              Missing generated sprite. Check image generation response.
+            </span>
           ) : (
             <span className={`text-xl font-bold ${typeColor.text}`}>{faremon.name.charAt(0)}</span>
           )}
@@ -271,6 +278,7 @@ export function FareMonBattleScreen({
   onSelectMove,
   onSwitch,
   waitingForOpponent,
+  requireGeneratedImages,
 }: FareMonBattleScreenProps) {
   const [selectedMove, setSelectedMove] = useState<FareMonMove | null>(null)
 
@@ -286,6 +294,18 @@ export function FareMonBattleScreen({
   const canSwitch = playerReserve && playerReserve.currentHP > 0 && playerActive && playerActive.currentHP > 0
 
   if (!playerActive || !opponentActive) return null
+  if (requireGeneratedImages && !state.generatedImages?.backgroundImageUrl) {
+    return (
+      <div className="flex h-full min-h-0 flex-col items-center justify-center bg-[#0b1026] px-4 text-center">
+        <p className="text-sm font-semibold text-red-200">
+          Image generation failed. Check image model/API configuration.
+        </p>
+        <p className="mt-2 text-xs text-white/55">
+          Missing generated battle background.
+        </p>
+      </div>
+    )
+  }
 
   const handleConfirmMove = () => {
     if (selectedMove) {
@@ -311,6 +331,15 @@ export function FareMonBattleScreen({
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <section className="relative min-h-0 flex-1 overflow-hidden px-2 pt-2">
+          {state.generatedImages?.backgroundImageUrl && (
+            // eslint-disable-next-line @next/next/no-img-element -- data URL generated server-side
+            <img
+              src={state.generatedImages.backgroundImageUrl}
+              alt=""
+              className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-90"
+            />
+          )}
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/15 via-black/25 to-black/55" />
           <div className="pointer-events-none absolute inset-0">
             <div className="absolute right-1/4 top-1/4 h-24 w-24 rounded-full bg-[#00b14f]/10 blur-3xl" />
             <div className="absolute bottom-1/4 left-1/4 h-24 w-24 rounded-full bg-[#ff6b00]/10 blur-3xl" />
@@ -318,7 +347,13 @@ export function FareMonBattleScreen({
 
           <div className="relative flex h-full min-h-0 flex-col gap-1">
             <div className="shrink-0 space-y-1">
-              <CreaturePanel viewerPlayerId={playerId} faremon={opponentActive} isOpponent showTypes />
+              <CreaturePanel
+                viewerPlayerId={playerId}
+                faremon={opponentActive}
+                isOpponent
+                showTypes
+                requireGeneratedImages={requireGeneratedImages}
+              />
             </div>
 
             <div className="min-h-0 flex-1 overflow-hidden rounded-lg border border-white/10 bg-black/25 p-1.5">
@@ -354,7 +389,13 @@ export function FareMonBattleScreen({
             </div>
 
             <div className="shrink-0 space-y-1 pb-1">
-              <CreaturePanel viewerPlayerId={playerId} faremon={playerActive} isOpponent={false} showTypes />
+              <CreaturePanel
+                viewerPlayerId={playerId}
+                faremon={playerActive}
+                isOpponent={false}
+                showTypes
+                requireGeneratedImages={requireGeneratedImages}
+              />
               {canSwitch && !(waitingForOpponent || hasSelectedMove) && (
                 <motion.button
                   type="button"

@@ -478,6 +478,11 @@ function canResolve(state: FareMonBattleState): boolean {
   return true
 }
 
+/** Exported for multiplayer room server resolve step */
+export function canResolveFareMonTurn(state: FareMonBattleState): boolean {
+  return canResolve(state)
+}
+
 function attemptParalysisSkip(fm: FareMon | null, log: string[]): boolean {
   if (!fm || fm.majorStatus !== 'Paralysis') return false
   if (paralysisBlocks()) {
@@ -688,6 +693,10 @@ export function createInitialFareMonBattleState(): FareMonBattleState {
       'Pixel-art mobile battle background, original monster-duel inspired composition, rainy Singapore expressway during peak hour, glowing green route lines, digital fare meters, soft neon reflections, vertical mobile battle layout, opponent area top-right, player area bottom-left, no copyrighted characters, no logos, no text, no UI buttons.',
     arenaPrompt:
       'Singapore peak-hour battle arena, neon route lines, fare meter displays, rain effects, urban transport energy, no copyrighted elements.',
+    generatedImages: null,
+    imageGenerationStarted: false,
+    imageGenerationCompleted: false,
+    imageGenerationError: null,
   }
 }
 
