@@ -83,9 +83,9 @@ export function RideOptionsScreen({
   }
 
   return (
-    <div className="flex h-full flex-col bg-white">
+    <div className="flex h-full min-h-0 flex-col bg-white">
       {/* Header */}
-      <div className="relative z-10 flex items-center justify-between px-4 py-3 bg-white">
+      <div className="relative z-10 flex shrink-0 items-center justify-between px-4 py-3 bg-white">
         <motion.button
           whileTap={{ scale: 0.9 }}
           onClick={onBack}
@@ -106,15 +106,15 @@ export function RideOptionsScreen({
       <MapBackground
         pickup={player.pickup}
         destination={player.destination}
-        className="h-[180px]"
+        className="h-[min(180px,28dvh)] shrink-0"
       />
       
-      {/* Bottom sheet */}
+      {/* Bottom sheet — min-h-0 so the list can shrink and scroll; CTA stays visible */}
       <motion.div
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        className="flex-1 -mt-3 rounded-t-3xl bg-white shadow-[0_-4px_20px_rgba(0,0,0,0.1)] flex flex-col"
+        className="flex min-h-0 flex-1 flex-col -mt-3 rounded-t-3xl bg-white shadow-[0_-4px_20px_rgba(0,0,0,0.1)]"
       >
         {/* Handle */}
         <div className="flex justify-center pt-3 pb-2">
@@ -122,7 +122,7 @@ export function RideOptionsScreen({
         </div>
         
         {/* Ride options */}
-        <div className="flex-1 overflow-y-auto px-4 pb-4">
+        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-y-contain px-4 pb-2">
           <div className="space-y-2.5">
             {rideOptions.map((option, index) => {
               const isSelected = selectedRideOption === option.id
@@ -231,8 +231,8 @@ export function RideOptionsScreen({
           </div>
         </div>
         
-        {/* Bottom actions */}
-        <div className="border-t border-[#e9ecef] bg-white p-4 mt-auto">
+        {/* Bottom actions — always pinned above home indicator */}
+        <div className="mt-auto shrink-0 border-t border-[#e9ecef] bg-white p-3 pb-3">
           <div className="mb-3 flex items-center justify-between text-sm">
             <div className="flex items-center gap-2">
               <div className="flex h-6 w-10 items-center justify-center rounded bg-[#1a1f71] text-xs font-bold text-white">

@@ -23,7 +23,7 @@ export function PhoneFrame({ children, playerName, playerId }: PhoneFrameProps) 
 
       <div className="relative">
         <div className="relative w-[375px] rounded-[50px] bg-[#1a1a1a] p-3 shadow-2xl">
-          <div className="flex min-h-[560px] max-h-[min(700px,92dvh)] flex-col overflow-hidden rounded-[38px] bg-black">
+          <div className="flex h-[min(700px,calc(100dvh-100px))] min-h-[520px] flex-col overflow-hidden rounded-[38px] bg-black">
             <div className="flex h-11 shrink-0 items-center justify-between bg-[#0d1117] px-6">
               <span className="text-sm font-semibold text-white/90">9:41</span>
               <div className="absolute left-1/2 top-[18px] h-[26px] w-[100px] -translate-x-1/2 rounded-full bg-black" />
