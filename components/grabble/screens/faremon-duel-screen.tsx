@@ -1,15 +1,39 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { FareMonState, FareMonMove, player1Moves, player2Moves } from '@/lib/grabble-types'
-import { generateFareMonPrompt } from '@/lib/ai-generation'
+import { useState, useEffect, useMemo } from 'react'
+import { motion } from 'framer-motion'
+import { FareMonState, FareMonMove } from '@/lib/grabble-types'
+import { getFareMon, type Move as GameDataMove } from '@/grabble/src/data'
+import { getCreatureImageUrlForDisplayName, getArenaImageUrl } from '@/lib/creature-images'
+import { getRandomArena } from '@/grabble/src/data'
 
 interface FareMonDuelScreenProps {
   playerId: 1 | 2
   state: FareMonState
   onSelectMove: (move: FareMonMove) => void
   waitingForOpponent: boolean
+}
+
+function gameDataMoveToFareMonMove(m: GameDataMove): FareMonMove {
+  const type: FareMonMove['type'] =
+    m.effect === 'shield'
+      ? 'Defense'
+      : m.effect === 'debuff'
+        ? 'Strategy'
+        : m.effect === 'risky'
+          ? 'Power'
+          : 'Attack'
+  const risk: FareMonMove['risk'] =
+    m.effect === 'risky' || m.damage >= 28 ? 'High' : m.damage === 0 && m.effect === 'shield' ? 'Low' : 'Medium'
+  const effect =
+    m.damage > 0 ? `Deals ${m.damage} damage` : m.effect === 'shield' ? 'Adds shield' : 'Rider pressure'
+  return {
+    name: m.name,
+    type,
+    effect,
+    risk,
+    description: effect,
+  }
 }
 
 function CreatureCard({ 
@@ -23,6 +47,12 @@ function CreatureCard({
 }) {
   const hpPercent = (creature.hp / creature.maxHp) * 100
   const hpColor = hpPercent > 50 ? '#00b14f' : hpPercent > 25 ? '#ff6b00' : '#dc3545'
+  const creatureImageUrl = getCreatureImageUrlForDisplayName(creature.name)
+  const [imageFailed, setImageFailed] = useState(false)
+
+  useEffect(() => {
+    setImageFailed(false)
+  }, [creature.name])
   
   return (
     <motion.div
@@ -44,10 +74,19 @@ function CreatureCard({
               : 'bg-gradient-to-br from-[#00b14f]/20 to-[#00b14f]/10'
           }`}
         >
-          {/* AI-generated creature placeholder */}
+          {/* Creature art: `public/grabble/creatures/<imageFile>` (Next.js) vs Vite `new URL(..., import.meta.url)` */}
+          {creatureImageUrl && !imageFailed ? (
+            <img
+              src={creatureImageUrl}
+              alt={creature.name}
+              className="h-12 w-12 rounded-xl object-cover"
+              onError={() => setImageFailed(true)}
+            />
+          ) : (
           <div className={`w-12 h-12 rounded-xl ${isOpponent ? 'bg-gradient-to-br from-orange-500 to-red-500' : 'bg-gradient-to-br from-green-500 to-emerald-500'} flex items-center justify-center`}>
             <span className="text-white font-bold text-lg">{creature.name.charAt(0)}</span>
           </div>
+          )}
           
           {/* Shield indicator */}
           {creature.shield > 0 && (
@@ -143,19 +182,44 @@ function MoveButton({
 
 export function FareMonDuelScreen({ playerId, state, onSelectMove, waitingForOpponent }: FareMonDuelScreenProps) {
   const [imagePrompt, setImagePrompt] = useState<string>('')
+  const arena = useMemo(() => getRandomArena(), [])
+  const arenaBgUrl = getArenaImageUrl(arena.imageFile)
+  const [arenaBgFailed, setArenaBgFailed] = useState(false)
+  const duelCreature = useMemo(
+    () => getFareMon(playerId === 1 ? 'surge-serpent' : 'terminal-tiger'),
+    [playerId]
+  )
+  const moves = useMemo(
+    () => duelCreature.moves.map(gameDataMoveToFareMonMove),
+    [duelCreature]
+  )
   
-  const moves = playerId === 1 ? player1Moves : player2Moves
   const playerCreature = playerId === 1 ? state.player1Creature : state.player2Creature
   const opponentCreature = playerId === 1 ? state.player2Creature : state.player1Creature
   const hasSelectedMove = playerId === 1 ? state.player1Move !== null : state.player2Move !== null
   
   useEffect(() => {
-    // Generate AI image prompt based on creature
-    setImagePrompt(generateFareMonPrompt(playerCreature.name, playerCreature.type))
-  }, [playerCreature.name, playerCreature.type])
+    setImagePrompt(duelCreature.promptTemplate)
+  }, [duelCreature])
   
   return (
-    <div className="flex h-full flex-col bg-gradient-to-b from-[#1a1a2e] to-[#16213e]">
+    <div className="relative flex h-full min-h-0 flex-col bg-gradient-to-b from-[#1a1a2e] to-[#16213e]">
+      {/* Next: `public/grabble/arenas/<imageFile>` — Vite used `new URL(../assets/arenas/..., import.meta.url)` */}
+      {!arenaBgFailed && (
+        <img src={arenaBgUrl} alt="" className="hidden" onError={() => setArenaBgFailed(true)} aria-hidden />
+      )}
+      <div
+        className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-[0.35]"
+        style={
+          arenaBgFailed
+            ? undefined
+            : { backgroundImage: `url(${arenaBgUrl})` }
+        }
+        aria-hidden
+      />
+      <div className="absolute inset-0 bg-gradient-to-b from-[#1a1a2e]/85 to-[#16213e]/90" aria-hidden />
+
+      <div className="relative z-10 flex min-h-0 flex-1 flex-col">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
         <div className="flex items-center gap-2">
@@ -178,7 +242,7 @@ export function FareMonDuelScreen({ playerId, state, onSelectMove, waitingForOpp
       </div>
       
       {/* Battle arena */}
-      <div className="flex-1 p-4">
+      <div className="relative flex-1 p-4">
         {/* Background glow */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-1/4 left-1/4 w-32 h-32 rounded-full bg-[#00b14f]/10 blur-3xl" />
@@ -241,6 +305,7 @@ export function FareMonDuelScreen({ playerId, state, onSelectMove, waitingForOpp
             </div>
           </>
         )}
+      </div>
       </div>
     </div>
   )

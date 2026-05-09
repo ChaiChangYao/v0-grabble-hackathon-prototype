@@ -8,6 +8,7 @@
     "build:vercel": "npx convex deploy --cmd-url-env-var-name NEXT_PUBLIC_CONVEX_URL --cmd \"npm run build\"",
     "start": "next start",
     "lint": "eslint .",
+    "data:convert-prompts": "node scripts/convert-grabble-prompt-library.mjs",
     "convex:dev": "npx convex dev",
     "convex:deploy": "npx convex deploy",
     "dev:convex": "npx convex dev --start \"next dev\""
@@ -43,6 +44,7 @@
     "@radix-ui/react-tooltip": "1.2.8",
     "@supabase/supabase-js": "^2.105.4",
     "@vercel/analytics": "1.6.1",
+    "ai": "^6.0.177",
     "autoprefixer": "^10.4.20",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

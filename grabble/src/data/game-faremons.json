@@ -1,0 +1,32 @@
+[
+  {
+    "id": "surge-serpent",
+    "name": "Surge Serpent",
+    "type": "Peak-Hour Trickster",
+    "hp": 100,
+    "imageFile": "surge-serpent.png",
+    "description": "A sleek neon-green serpent made of road lines, traffic lights, glowing fare meters, and route arrows.",
+    "moves": [
+      { "id": "surge-bite", "name": "Surge Bite", "damage": 18, "effect": "none" },
+      { "id": "green-shield", "name": "Green Shield", "damage": 0, "effect": "shield" },
+      { "id": "route-hack", "name": "Route Hack", "damage": 10, "effect": "debuff" },
+      { "id": "peak-rush", "name": "Peak Rush", "damage": 30, "effect": "risky" }
+    ],
+    "promptTemplate": "A sleek neon-green serpent composed of glowing road lane markings, traffic-signal eyes, fare-meter scales, and arrow-shaped fins; 16-bit pixel battle sprite, centered, readable silhouette, no text."
+  },
+  {
+    "id": "terminal-tiger",
+    "name": "Terminal Tiger",
+    "type": "Airport Sprinter",
+    "hp": 100,
+    "imageFile": "terminal-tiger.png",
+    "description": "A futuristic tiger with taxi-light stripes, luggage-tag armor, expressway markings, and route-map energy.",
+    "moves": [
+      { "id": "terminal-dash", "name": "Terminal Dash", "damage": 18, "effect": "none" },
+      { "id": "luggage-guard", "name": "Luggage Guard", "damage": 0, "effect": "shield" },
+      { "id": "fare-spike", "name": "Fare Spike", "damage": 10, "effect": "debuff" },
+      { "id": "express-claw", "name": "Express Claw", "damage": 30, "effect": "risky" }
+    ],
+    "promptTemplate": "Futuristic tiger with taxi-light stripes, luggage-tag armor plates, expressway shoulder markings, and route-map energy mane; 16-bit pixel battle sprite, centered, readable silhouette, no text."
+  }
+]

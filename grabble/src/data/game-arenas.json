@@ -1,0 +1,10 @@
+[
+  {
+    "id": "city-rush-arena",
+    "name": "City Rush Arena",
+    "imageFile": "city-rush-arena.jpg",
+    "description": "Singapore CBD intersection at night: wet asphalt, crosswalk stripes, stacked headlights, taxi-amber streaks, glass towers lit with surge-colored glow and ERP signage hints—compressed depth, peak-hour electricity.",
+    "mood": "intense",
+    "promptTemplate": "Cinematic wide-angle night view of Singapore CBD as a compact 16-bit pixel battle stage: shallow isometric raised traffic platform, charcoal asphalt with dashed arrows and reflective studs, yellow-black curb trim, receding bus lanes and skyline bands, teal and taxi-yellow highlights, readable midground for combat, no logos, no text."
+  }
+]

@@ -1,0 +1,59 @@
+{
+  "faremonBattle": [
+    "CY is playing aggressively, but the fare pressure is getting dangerous.",
+    "Rival Rider chose defense at the right time.",
+    "Route Hack increased the opponent's fare pressure. Smart move.",
+    "Peak Rush is risky. Big reward, but it can backfire.",
+    "This is strategy-based, not reflex-based.",
+    "The shield expired. Watch out for the next attack!",
+    "Both players are evenly matched. This could go either way."
+  ],
+  "matchmaking": [
+    "Pairing riders headed similar directions for a better match…",
+    "Surge detected — tightening the competitive lane.",
+    "Almost there: calibrating fare brackets."
+  ],
+  "neutral": [
+    "Grabble: ride-hailing meets head-to-head games.",
+    "Higher pressure, higher stakes — pick your lane."
+  ],
+  "gameSelection": [
+    "Choose your game — FareMon duel or BattleRoute.",
+    "Pick a mode: creature battle or route puzzle brawl.",
+    "Lock in your game before the matchmaker pairs riders."
+  ],
+  "battle": {
+    "surge-bite": [
+      "Surge Bite connects — peak-hour teeth find their mark.",
+      "A clean Surge Bite keeps the pressure on."
+    ],
+    "green-shield": [
+      "Green Shield absorbs the worst of that burst.",
+      "Shield up: the next hit will tell."
+    ],
+    "route-hack": [
+      "Route Hack reroutes the opponent into friction.",
+      "Fare pressure climbs after that hack."
+    ],
+    "peak-rush": [
+      "Peak Rush goes all-in — huge swing either way.",
+      "The meter spikes… Peak Rush could end this."
+    ],
+    "terminal-dash": [
+      "Terminal Dash cuts across the express lane.",
+      "Airport speed — Terminal Dash lands clean."
+    ],
+    "luggage-guard": [
+      "Luggage Guard stacks armor against the hit.",
+      "Tags flash — Luggage Guard soaks damage."
+    ],
+    "fare-spike": [
+      "Fare Spike jacks the opponent into surge territory.",
+      "The meter jumps after Fare Spike."
+    ],
+    "express-claw": [
+      "Express Claw rips for massive damage — or whiffs hard.",
+      "All lanes tremble: Express Claw."
+    ]
+  }
+}

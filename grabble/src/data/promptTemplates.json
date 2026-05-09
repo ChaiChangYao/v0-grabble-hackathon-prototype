@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "faremonCreature": "Original ride-hailing elemental creature, type: {{elementType}}, minimalist pixel-art monster style, inspired by Singapore peak-hour transport energy, named {{name}}, no copyrighted characters, no logos, no text.",
+  "faremonCreatureAlt": "Concept art, single creature, {{archetype}} vibe, {{visualHint}}, clean readable silhouette, no text, no watermark.",
+  "arenaBackdrop": "Wide establishing shot of a competitive ride-hailing battle arena: {{arenaDescription}}, cinematic lighting, readable midground for combat, no logos, no readable text.",
+  "arenaThumb": "Thumbnail, arena mood board: {{mood}}, abstract roads and light trails, 16:9 feel cropped square."
+}

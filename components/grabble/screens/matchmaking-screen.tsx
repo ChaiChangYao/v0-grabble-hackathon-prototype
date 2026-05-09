@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Player } from '@/lib/grabble-types'
 import { Search, Target, CheckCircle2, Sparkles } from 'lucide-react'
+import { getRandomArena } from '@/grabble/src/data'
 
 interface MatchmakingScreenProps {
   player: Player
@@ -14,6 +15,7 @@ interface MatchmakingScreenProps {
 
 export function MatchmakingScreen({ player, opponent, matchedSimilarity, onMatched }: MatchmakingScreenProps) {
   const [phase, setPhase] = useState<'searching' | 'found' | 'matched'>('searching')
+  const arena = useMemo(() => getRandomArena(), [])
   
   useEffect(() => {
     const timer1 = setTimeout(() => setPhase('found'), 2000)
@@ -78,6 +80,7 @@ export function MatchmakingScreen({ player, opponent, matchedSimilarity, onMatch
               <p className="text-center text-sm text-[#6c757d]">
                 AI is searching for a rider with a fare value within 1% of yours
               </p>
+              <p className="mx-auto mt-3 max-w-xs text-center text-xs text-[#adb5bd]">{arena.description}</p>
               
               {/* Your fare */}
               <div className="mt-6 rounded-xl bg-[#f8f9fa] px-6 py-3">
