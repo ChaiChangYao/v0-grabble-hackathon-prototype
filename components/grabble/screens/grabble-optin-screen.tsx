@@ -125,15 +125,15 @@ export function GrabbleOptInScreen({ player, onAccept, onDecline }: GrabbleOptIn
             <Users className="h-4 w-4" />
             Both riders must accept the challenge
           </p>
-          <p className="flex items-center justify-center gap-2">
-            <motion.div
+          <span className="flex items-center justify-center gap-2">
+            <motion.span
               animate={{ opacity: [1, 0.5, 1] }}
               transition={{ repeat: Infinity, duration: 1.5 }}
             >
               <Sparkles className="h-4 w-4" />
-            </motion.div>
+            </motion.span>
             AI selects a fair game for both riders
-          </p>
+          </span>
         </motion.div>
       </div>
       
