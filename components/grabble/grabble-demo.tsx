@@ -1,13 +1,11 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { PhoneFrame } from './phone-frame'
 import { RideOptionsScreen } from './screens/ride-options-screen'
 import { GrabbleOptInScreen } from './screens/grabble-optin-screen'
 import { MatchmakingScreen } from './screens/matchmaking-screen'
-import { AIGameSelectionScreen } from './screens/ai-game-selection-screen'
-import { PreGameScreen } from './screens/pre-game-screen'
 import { FareMonTypeSelectionScreen } from './screens/faremon-type-selection-screen'
 import { FareMonBattleScreen } from './screens/faremon-battle-screen'
 import { BattleRouteScreen } from './screens/battleroute-screen'
@@ -27,7 +25,6 @@ import {
   selectType,
   lockInTeam,
   resolveFareMonTurn,
-  switchFareMon,
 } from '@/lib/faremon-engine'
 import {
   createBattleRouteState,
@@ -36,11 +33,17 @@ import {
   routeAssets,
   type BattleRouteState,
 } from '@/lib/battleroute-engine'
-import { RotateCcw, Sparkles } from 'lucide-react'
+import { RotateCcw, Sparkles, Link2 } from 'lucide-react'
 
 type RideOptionId = 'grabble' | 'justgrab' | 'metered-taxi' | 'car-only'
 
-type ExtendedScreen = Screen | 'pre-game' | 'faremon-type-selection' | 'faremon-battle'
+type ExtendedScreen = Screen | 'faremon-type-selection' | 'faremon-battle'
+
+export interface GrabbleDemoProps {
+  faremonRoomId?: string
+  /** When set with faremonRoomId, only one phone frame is shown for online play */
+  faremonRemoteRole?: 1 | 2
+}
 
 interface GameState {
   currentScreen: ExtendedScreen
@@ -60,50 +63,100 @@ const initialState: GameState = {
   winner: null,
 }
 
-export function GrabbleDemo() {
+export function GrabbleDemo(props: GrabbleDemoProps = {}) {
+  const { faremonRoomId, faremonRemoteRole } = props
   const [state, setState] = useState<GameState>(initialState)
+  const remoteVersion = useRef(0)
+  const applyingRemote = useRef(false)
+  const singleRemote = Boolean(faremonRoomId && faremonRemoteRole)
+
+  useEffect(() => {
+    if (!faremonRoomId) return
+    let cancelled = false
+    const tick = async () => {
+      try {
+        const r = await fetch(`/api/faremon-room/${faremonRoomId}`)
+        if (!r.ok || cancelled) return
+        const j = await r.json()
+        if (j.version <= remoteVersion.current) return
+        remoteVersion.current = j.version
+        applyingRemote.current = true
+        const fs = j.fareMonState as FareMonBattleState
+        setState((prev) => ({
+          ...prev,
+          fareMonState: fs,
+          selectedGame: 'faremon-duel',
+          winner: fs.winner,
+          currentScreen: fs.gameOver
+            ? 'results'
+            : fs.phase === 'battle'
+              ? 'faremon-battle'
+              : 'faremon-type-selection',
+        }))
+        queueMicrotask(() => {
+          applyingRemote.current = false
+        })
+      } catch {
+        /* network */
+      }
+    }
+    tick()
+    const id = setInterval(tick, 800)
+    return () => {
+      cancelled = true
+      clearInterval(id)
+    }
+  }, [faremonRoomId])
+
+  useEffect(() => {
+    if (!faremonRoomId || applyingRemote.current) return
+    const fs = state.fareMonState
+    if (!fs) return
+    const t = setTimeout(async () => {
+      try {
+        const r = await fetch(`/api/faremon-room/${faremonRoomId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fareMonState: fs }),
+        })
+        if (r.ok) {
+          const j = await r.json()
+          remoteVersion.current = j.version
+        }
+      } catch {
+        /* ignore */
+      }
+    }, 500)
+    return () => clearTimeout(t)
+  }, [state.fareMonState, faremonRoomId])
 
   const setScreen = useCallback((screen: ExtendedScreen) => {
     setState((prev) => ({ ...prev, currentScreen: screen }))
   }, [])
 
   const resetDemo = useCallback(() => {
+    remoteVersion.current = 0
     setState(initialState)
+  }, [])
+
+  const shareFaremonRoom = useCallback(async () => {
+    try {
+      const r = await fetch('/api/faremon-room', { method: 'POST' })
+      const j = (await r.json()) as { roomId: string; guestUrlHint?: string }
+      const base =
+        typeof window !== 'undefined' ? window.location.origin : ''
+      const host = `${base}/?faremonRoom=${j.roomId}&role=1`
+      const guest = j.guestUrlHint || `${base}/?faremonRoom=${j.roomId}&role=2`
+      const text = `FareMon online duel\nYou (host): ${host}\nFriend (guest): ${guest}`
+      await navigator.clipboard.writeText(text)
+    } catch {
+      /* clipboard / fetch */
+    }
   }, [])
 
   // Ride option selection - mutually exclusive
   const handleSelectRideOption = useCallback((option: RideOptionId) => {
     setState((prev) => ({ ...prev, selectedRideOption: option }))
-  }, [])
-
-  // Game selected by AI - runs once, shared by both phones
-  const handleGameSelected = useCallback((game: GameType) => {
-    setState((prev) => ({
-      ...prev,
-      selectedGame: game,
-      currentScreen: 'pre-game',
-    }))
-  }, [])
-
-  // Enter challenge after pre-game confirmation
-  const handleEnterChallenge = useCallback(() => {
-    setState((prev) => {
-      if (!prev.selectedGame) return prev
-      
-      if (prev.selectedGame === 'faremon-duel') {
-        return {
-          ...prev,
-          currentScreen: 'faremon-type-selection',
-          fareMonState: createInitialFareMonBattleState(),
-        }
-      } else {
-        return {
-          ...prev,
-          currentScreen: 'battleroute',
-          battleRouteState: createBattleRouteState(),
-        }
-      }
-    })
   }, [])
 
   // FareMon type selection
@@ -174,14 +227,16 @@ export function GrabbleDemo() {
   const handleFareMonSwitch = useCallback((playerId: 1 | 2) => {
     setState((prev) => {
       if (!prev.fareMonState) return prev
-      
-      let newState = switchFareMon(prev.fareMonState, playerId)
-      
+
+      let newState = { ...prev.fareMonState }
+
       if (playerId === 1) {
         newState.player1Action = 'switch'
+        newState.player1SelectedMove = null
         newState.player1Locked = true
       } else {
         newState.player2Action = 'switch'
+        newState.player2SelectedMove = null
         newState.player2Locked = true
       }
       
@@ -275,36 +330,16 @@ export function GrabbleDemo() {
             opponent={opponent}
             matchedSimilarity={99}
             onMatched={() => {
-              // Select game ONCE here, before entering ai-game-selection
-              if (!state.selectedGame) {
-                const games: GameType[] = ['faremon-duel', 'battleroute']
-                const randomGame = games[Math.floor(Math.random() * games.length)]
-                setState(prev => ({ ...prev, selectedGame: randomGame, currentScreen: 'ai-game-selection' }))
-              } else {
-                setScreen('ai-game-selection')
-              }
+              setState((prev) => ({
+                ...prev,
+                selectedGame: 'faremon-duel',
+                currentScreen: 'faremon-type-selection',
+                fareMonState: createInitialFareMonBattleState(),
+              }))
             }}
           />
         )
-      
-      case 'ai-game-selection':
-        return (
-          <AIGameSelectionScreen
-            preSelectedGame={state.selectedGame}
-            onGameSelected={handleGameSelected}
-          />
-        )
-      
-      case 'pre-game':
-        if (!state.selectedGame) return null
-        return (
-          <PreGameScreen
-            player={player}
-            selectedGame={state.selectedGame}
-            onEnterChallenge={handleEnterChallenge}
-          />
-        )
-      
+
       case 'faremon-type-selection':
         if (!state.fareMonState) return null
         return (
@@ -391,6 +426,16 @@ export function GrabbleDemo() {
           Competitive Ridehailing: Compete to pay half the price or walk away with 1.5x
         </p>
         
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={shareFaremonRoom}
+          className="mt-3 inline-flex items-center gap-2 rounded-full bg-[#00b14f]/20 px-4 py-2 text-sm font-medium text-[#7dffb2] transition-colors hover:bg-[#00b14f]/30"
+        >
+          <Link2 className="h-4 w-4" />
+          Copy FareMon online duel links
+        </motion.button>
+
         {/* Reset button */}
         <motion.button
           whileHover={{ scale: 1.02 }}
@@ -405,34 +450,58 @@ export function GrabbleDemo() {
       
       {/* Phones */}
       <div className="flex flex-wrap items-start justify-center gap-8">
-        <PhoneFrame playerName={defaultPlayer1.name} playerId={1}>
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={state.currentScreen}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 10 }}
-              transition={{ duration: 0.2 }}
-              className="h-full"
-            >
-              {renderScreen(1)}
-            </motion.div>
-          </AnimatePresence>
-        </PhoneFrame>
-        <PhoneFrame playerName={defaultPlayer2.name} playerId={2}>
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={state.currentScreen}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 10 }}
-              transition={{ duration: 0.2 }}
-              className="h-full"
-            >
-              {renderScreen(2)}
-            </motion.div>
-          </AnimatePresence>
-        </PhoneFrame>
+        {singleRemote && faremonRemoteRole ? (
+          <PhoneFrame
+            playerName={
+              faremonRemoteRole === 1 ? defaultPlayer1.name : defaultPlayer2.name
+            }
+            playerId={faremonRemoteRole}
+          >
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={state.currentScreen}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 10 }}
+                transition={{ duration: 0.2 }}
+                className="h-full min-h-0"
+              >
+                {renderScreen(faremonRemoteRole)}
+              </motion.div>
+            </AnimatePresence>
+          </PhoneFrame>
+        ) : (
+          <>
+            <PhoneFrame playerName={defaultPlayer1.name} playerId={1}>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={state.currentScreen}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 10 }}
+                  transition={{ duration: 0.2 }}
+                  className="h-full min-h-0"
+                >
+                  {renderScreen(1)}
+                </motion.div>
+              </AnimatePresence>
+            </PhoneFrame>
+            <PhoneFrame playerName={defaultPlayer2.name} playerId={2}>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={state.currentScreen}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 10 }}
+                  transition={{ duration: 0.2 }}
+                  className="h-full min-h-0"
+                >
+                  {renderScreen(2)}
+                </motion.div>
+              </AnimatePresence>
+            </PhoneFrame>
+          </>
+        )}
       </div>
       
       {/* Footer info */}

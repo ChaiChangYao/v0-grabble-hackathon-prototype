@@ -1,5 +1,5 @@
-import { GrabbleDemo } from '@/components/grabble/grabble-demo'
+import { GrabbleDemoPage } from '@/components/grabble/grabble-demo-page'
 
 export default function Page() {
-  return <GrabbleDemo />
+  return <GrabbleDemoPage />
 }

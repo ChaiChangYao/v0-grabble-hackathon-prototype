@@ -5,7 +5,6 @@ export type Screen =
   | 'ride-options'
   | 'grabble-optin'
   | 'matchmaking'
-  | 'ai-game-selection'
   | 'faremon-duel'
   | 'battleroute'
   | 'results'
