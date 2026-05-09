@@ -16,6 +16,7 @@ export function GrabbleOptInScreen({ player, onAccept, onDecline }: GrabbleOptIn
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-4">
         <motion.button
+          type="button"
           whileTap={{ scale: 0.9 }}
           onClick={onDecline}
           className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20"

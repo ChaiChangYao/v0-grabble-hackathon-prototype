@@ -2,6 +2,7 @@
 
 import { Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { Toaster } from 'sonner'
 import { GrabbleDemo } from './grabble-demo'
 
 function GrabbleDemoWithQuery() {
@@ -20,6 +21,7 @@ function GrabbleDemoWithQuery() {
 export function GrabbleDemoPage() {
   return (
     <Suspense fallback={<div className="min-h-screen bg-[#0f172a]" />}>
+      <Toaster richColors position="top-center" theme="dark" />
       <GrabbleDemoWithQuery />
     </Suspense>
   )

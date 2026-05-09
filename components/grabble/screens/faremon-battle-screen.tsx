@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   formatStages,
   moveSummaryLines,
+  getSpriteForPerspective,
   type FareMonBattleState,
   type FareMonMove,
   type FareMon,
@@ -137,10 +138,12 @@ function StatusBadge({ faremon }: { faremon: FareMon }) {
 }
 
 function CreaturePanel({
+  viewerPlayerId,
   faremon,
   isOpponent,
   showTypes,
 }: {
+  viewerPlayerId: 1 | 2
   faremon: FareMon
   isOpponent: boolean
   showTypes: boolean
@@ -148,6 +151,9 @@ function CreaturePanel({
   const hpPercent = (faremon.currentHP / faremon.maxHP) * 100
   const hpColor = hpPercent > 50 ? '#00b14f' : hpPercent > 25 ? '#ff6b00' : '#dc3545'
   const typeColor = TYPE_ACCENTS[faremon.primaryType]
+  const ownerId = isOpponent ? (viewerPlayerId === 1 ? 2 : 1) : viewerPlayerId
+  const spriteUrl = getSpriteForPerspective(viewerPlayerId, ownerId, faremon)
+  const dp = faremon.dpsProfile
 
   return (
     <motion.div
@@ -159,9 +165,14 @@ function CreaturePanel({
         <motion.div
           animate={{ y: [0, -2, 0] }}
           transition={{ repeat: Infinity, duration: 2.2 }}
-          className={`flex h-14 w-14 items-center justify-center rounded-xl border ${typeColor.bg} ${typeColor.border}`}
+          className={`relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-xl border ${typeColor.bg} ${typeColor.border}`}
         >
-          <span className={`text-xl font-bold ${typeColor.text}`}>{faremon.name.charAt(0)}</span>
+          {spriteUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element -- data URLs from AI
+            <img src={spriteUrl} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <span className={`text-xl font-bold ${typeColor.text}`}>{faremon.name.charAt(0)}</span>
+          )}
         </motion.div>
       </div>
 
@@ -171,6 +182,24 @@ function CreaturePanel({
           <span className="text-sm font-bold leading-tight text-white">{faremon.name}</span>
           <StatusBadge faremon={faremon} />
         </div>
+        {faremon.playstyle && (
+          <p className={`text-[9px] italic text-white/45 ${isOpponent ? 'text-right' : ''}`}>
+            {faremon.playstyle}
+          </p>
+        )}
+        {dp && (
+          <div
+            className={`flex flex-wrap gap-1 text-[8px] text-white/55 ${isOpponent ? 'justify-end' : ''}`}
+          >
+            <span>Burst {dp.burst}</span>
+            <span>·</span>
+            <span>Ctrl {dp.control}</span>
+            <span>·</span>
+            <span>Spd {dp.speed}</span>
+            <span>·</span>
+            <span>Def {dp.defense}</span>
+          </div>
+        )}
         <div
           className={`flex items-center gap-2 ${isOpponent ? 'flex-row-reverse' : ''}`}
         >
@@ -289,7 +318,7 @@ export function FareMonBattleScreen({
 
           <div className="relative flex h-full min-h-0 flex-col gap-1">
             <div className="shrink-0 space-y-1">
-              <CreaturePanel faremon={opponentActive} isOpponent showTypes />
+              <CreaturePanel viewerPlayerId={playerId} faremon={opponentActive} isOpponent showTypes />
             </div>
 
             <div className="min-h-0 flex-1 overflow-hidden rounded-lg border border-white/10 bg-black/25 p-1.5">
@@ -325,7 +354,7 @@ export function FareMonBattleScreen({
             </div>
 
             <div className="shrink-0 space-y-1 pb-1">
-              <CreaturePanel faremon={playerActive} isOpponent={false} showTypes />
+              <CreaturePanel viewerPlayerId={playerId} faremon={playerActive} isOpponent={false} showTypes />
               {canSwitch && !(waitingForOpponent || hasSelectedMove) && (
                 <motion.button
                   type="button"

@@ -709,12 +709,16 @@ export function selectType(
   return newState
 }
 
-export function lockInTeam(state: FareMonBattleState, playerId: 1 | 2): FareMonBattleState {
+export function applyGeneratedFareMonTeam(
+  state: FareMonBattleState,
+  playerId: 1 | 2,
+  faremons: [FareMon, FareMon],
+): FareMonBattleState {
   const newState = structuredClone(state)
   const team = playerId === 1 ? newState.player1Team : newState.player2Team
   if (team.selectedTypes.length !== 2) return state
-  team.faremon1 = createRandomFareMon(team.selectedTypes[0], playerId)
-  team.faremon2 = createRandomFareMon(team.selectedTypes[1], playerId)
+  team.faremon1 = faremons[0]
+  team.faremon2 = faremons[1]
   team.locked = true
   if (playerId === 1) newState.player1Team = team
   else newState.player2Team = team

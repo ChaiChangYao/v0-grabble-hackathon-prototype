@@ -87,6 +87,7 @@ export function RideOptionsScreen({
       {/* Header */}
       <div className="relative z-10 flex shrink-0 items-center justify-between px-4 py-3 bg-white">
         <motion.button
+          type="button"
           whileTap={{ scale: 0.9 }}
           onClick={onBack}
           className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-md border border-[#e9ecef]"
@@ -95,8 +96,11 @@ export function RideOptionsScreen({
         </motion.button>
         <span className="font-semibold text-[#212529] text-sm tracking-wide uppercase">Singapore</span>
         <motion.button
+          type="button"
           whileTap={{ scale: 0.9 }}
+          onClick={onBack}
           className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-md border border-[#e9ecef]"
+          aria-label="Close"
         >
           <ChevronDown className="h-5 w-5 text-[#212529]" />
         </motion.button>

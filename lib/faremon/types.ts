@@ -38,6 +38,15 @@ export interface StatChanges {
   evasion?: number
 }
 
+export type MoveDpsRole =
+  | 'burst'
+  | 'sustain'
+  | 'control'
+  | 'defense'
+  | 'setup'
+  | 'disruption'
+  | 'recovery'
+
 export interface FareMonMove {
   id: string
   name: string
@@ -64,8 +73,19 @@ export interface FareMonMove {
   sleepTurnsMax?: number
   description: string
   iconPrompt?: string
+  /** Optional status duration hint for UI (engine may not use) */
+  duration?: number
+  dpsRole?: MoveDpsRole
   /** Legacy one-line for logs / tooltips */
   effect?: string
+}
+
+export interface DpsProfile {
+  burst: number
+  sustain: number
+  control: number
+  defense: number
+  speed: number
 }
 
 export interface FareMon {
@@ -78,7 +98,22 @@ export interface FareMon {
   attack: number
   defense: number
   speed: number
+  /** Base accuracy used by UI; battle hit formula still uses move accuracy + stages */
+  accuracy?: number
+  /** Base evasion used by UI */
+  evasion?: number
   farePressure: number
+  /** Short playstyle label from generation */
+  playstyle?: string
+  dpsProfile?: DpsProfile
+  /** Shared identity text for matching front/back sprites */
+  visualIdentity?: string
+  characterPromptFront?: string
+  characterPromptBack?: string
+  /** Generated sprite URLs (data URLs or CDN); same for both clients in a match */
+  frontImageUrl?: string | null
+  backImageUrl?: string | null
+  /** Legacy combined prompt */
   imagePrompt: string
   moves: FareMonMove[]
   attackStage: number

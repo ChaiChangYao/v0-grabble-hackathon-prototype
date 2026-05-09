@@ -22,3 +22,11 @@ export function getArenaImageUrl(imageFile: string): string {
   const safe = imageFile.replace(/^\//, "")
   return `${ARENA_IMAGE_PUBLIC_DIR}/${encodeURIComponent(safe)}`
 }
+
+export function getCreatureImageUrlForDisplayName(displayName: string): string | null {
+  const id = creatureDisplayNameToId[displayName]
+  if (!id) return null
+  const fm = getFareMon(id)
+  if (!fm?.imageFile) return null
+  return getCreatureImageUrl(fm.imageFile)
+}

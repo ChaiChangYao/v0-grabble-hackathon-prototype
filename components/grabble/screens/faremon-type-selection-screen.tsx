@@ -29,8 +29,9 @@ interface FareMonTypeSelectionScreenProps {
   playerId: 1 | 2
   team: FareMonTeam
   opponentLocked: boolean
+  isGenerating?: boolean
   onSelectType: (type: FareMonType) => void
-  onLockIn: () => void
+  onLockIn: () => void | Promise<void>
 }
 
 const TYPE_IDENTITY: Record<FareMonType, string> = {
@@ -82,6 +83,7 @@ export function FareMonTypeSelectionScreen({
   playerId,
   team,
   opponentLocked,
+  isGenerating = false,
   onSelectType,
   onLockIn,
 }: FareMonTypeSelectionScreenProps) {
@@ -121,7 +123,7 @@ export function FareMonTypeSelectionScreen({
           {filtered.map((type) => {
             const info = CARD[type]
             const isSelected = team.selectedTypes.includes(type)
-            const isDisabled = team.locked || (!isSelected && team.selectedTypes.length >= 2)
+            const isDisabled = team.locked || isGenerating || (!isSelected && team.selectedTypes.length >= 2)
 
             return (
               <motion.button
@@ -210,11 +212,21 @@ export function FareMonTypeSelectionScreen({
               />
             )}
           </motion.div>
+        ) : isGenerating ? (
+          <div className="flex flex-col items-center gap-2 py-3">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 1.2, ease: 'linear' }}
+              className="h-8 w-8 rounded-full border-2 border-[#00b14f] border-t-transparent"
+            />
+            <p className="text-center text-sm font-medium text-white">Summoning FareMons…</p>
+            <p className="text-center text-[11px] text-white/50">AI is building your team for this match</p>
+          </div>
         ) : (
           <motion.button
             type="button"
             whileTap={{ scale: canLockIn ? 0.98 : 1 }}
-            onClick={onLockIn}
+            onClick={() => void onLockIn()}
             disabled={!canLockIn}
             className={`w-full rounded-xl py-3.5 text-sm font-semibold text-white transition-all ${
               canLockIn
