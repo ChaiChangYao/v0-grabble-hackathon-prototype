@@ -30,23 +30,23 @@ export function AIGameSelectionScreen({ preSelectedGame, onGameSelected }: AIGam
     if (hasStartedRef.current) return
     hasStartedRef.current = true
     
-    // Progress through steps - fast 300ms per step
+    // Progress through steps - fast 250ms per step (5 steps = 1.25s)
     const stepInterval = setInterval(() => {
       setCurrentStep((prev) => {
         if (prev < loadingSteps.length - 1) return prev + 1
         return prev
       })
-    }, 300)
+    }, 250)
     
-    // Show result after all steps (5 steps x 300ms = 1.5s)
+    // Show result after all steps (1.25s)
     const resultTimer = setTimeout(() => {
       setShowResult(true)
-    }, loadingSteps.length * 300)
+    }, loadingSteps.length * 250)
     
-    // Transition to game (1.5s + 1s for reveal)
+    // Transition to game after a quick 800ms reveal (total ~2.05s)
     const gameTimer = setTimeout(() => {
       onGameSelected(selectedGame)
-    }, loadingSteps.length * 300 + 1000)
+    }, loadingSteps.length * 250 + 800)
     
     return () => {
       clearInterval(stepInterval)
@@ -260,7 +260,7 @@ export function AIGameSelectionScreen({ preSelectedGame, onGameSelected }: AIGam
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.8 }}
+                transition={{ delay: 0.4 }}
                 className="mt-6 flex items-center gap-2 text-sm text-white/60"
               >
                 <motion.div
@@ -268,7 +268,7 @@ export function AIGameSelectionScreen({ preSelectedGame, onGameSelected }: AIGam
                   transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
                   className="h-4 w-4 rounded-full border-2 border-[#00b14f] border-t-transparent"
                 />
-                Loading game
+                Entering game
               </motion.div>
             </motion.div>
           )}
