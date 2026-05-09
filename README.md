@@ -1,44 +1,20 @@
-# v0-grabble-hackathon-prototype
+# Grabble 🚗⚡
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [v0](https://v0.app).
+Access via here: https://v0-grabble-hackathon-prototype.vercel.app/
 
-## Built with v0
+> Competitive ride-hailing, powered by AI.
 
-This repository is linked to a [v0](https://v0.app) project. You can continue developing by visiting the link below -- start new chats to make changes, and v0 will push commits directly to this repo. Every merge to `main` will automatically deploy.
+Grabble is a gamified ride-hailing prototype where passengers compete in real-time for their fare. Win the match and pay **half the price** — lose and your opponent rides for less while you walk away with a **1.5× credit**. Either way, it's never a boring wait for your ride.
 
-[Continue working on v0 →](https://v0.app/chat/projects/prj_htYvi8G5ACwQX20OSSeVTGj6uNUJ)
+Built as a hackathon prototype exploring how game mechanics and AI can reshape the everyday commute experience.
 
-## Getting Started
+## How It Works
 
-First, run the development server:
+1. Request a ride as usual
+2. Get matched with another nearby passenger heading in a similar direction
+3. Compete in a quick AI-powered challenge
+4. Winner gets 50% off — loser gets 1.5× ride credit for next time
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-## Image Generation
-
-FareMon Duel image generation requires a server-side image model configured through the OpenAI API or Vercel AI Gateway. If `IMAGE_MODEL` or the server-side API key is missing, the app will stop and request configuration instead of silently using fake images.
-
-Production currently expects:
-
-- `OPENAI_API_KEY`
-- `IMAGE_MODEL=gpt-image-1`
-
-## Learn More
-
-To learn more, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-- [v0 Documentation](https://v0.app/docs) - learn about v0 and how to use it.
-
-<a href="https://v0.app/chat/api/kiro/clone/ChaiChangYao/v0-grabble-hackathon-prototype" alt="Open in Kiro"><img src="https://pdgvvgmkdvyeydso.public.blob.vercel-storage.com/open%20in%20kiro.svg?sanitize=true" /></a>
+## Tech
+- AI-powered matchmaking and challenge generation
+- Deployed on Vercel
