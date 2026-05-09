@@ -21,10 +21,11 @@ export function PhoneFrame({ children, playerName, playerId }: PhoneFrameProps) 
         <span className="text-sm font-medium text-[#495057]">Player {playerId}: {playerName}</span>
       </div>
 
-      <div className="relative">
-        <div className="relative w-[375px] rounded-[50px] bg-[#1a1a1a] p-3 shadow-2xl">
-          <div className="flex h-[min(700px,calc(100dvh-100px))] min-h-[520px] flex-col overflow-hidden rounded-[38px] bg-black">
-            <div className="flex h-11 shrink-0 items-center justify-between bg-[#0d1117] px-6">
+      <div className="relative shrink-0">
+        {/* iPhone 15 class device: 393 × 852 pt portrait — fixed height (no 100dvh min() squeeze) */}
+        <div className="relative w-[393px] rounded-[50px] bg-[#1a1a1a] p-3 shadow-2xl">
+          <div className="relative flex h-[852px] flex-col overflow-hidden rounded-[38px] bg-black">
+            <div className="relative flex h-11 shrink-0 items-center justify-between bg-[#0d1117] px-6">
               <span className="text-sm font-semibold text-white/90">9:41</span>
               <div className="absolute left-1/2 top-[18px] h-[26px] w-[100px] -translate-x-1/2 rounded-full bg-black" />
               <div className="flex items-center gap-1 text-white/80">
