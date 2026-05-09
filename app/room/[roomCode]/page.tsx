@@ -104,6 +104,22 @@ export default function RoomPage() {
     else toast.error('Could not copy')
   }
 
+  const backToSoloDemo = async () => {
+    if (role != null) {
+      try {
+        await fetch(`/api/room/${roomCode}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'disconnect', playerId }),
+          keepalive: true,
+        })
+      } catch {
+        /* best effort */
+      }
+    }
+    router.replace('/')
+  }
+
   const startChallenge = async () => {
     if (!room) return
     try {
@@ -148,10 +164,10 @@ export default function RoomPage() {
         </p>
         <button
           type="button"
-          onClick={() => router.push('/')}
+          onClick={() => router.replace('/')}
           className="rounded-full bg-white/10 px-5 py-2 text-sm text-white"
         >
-          Home
+          Back to solo demo
         </button>
       </div>
     )
@@ -162,6 +178,13 @@ export default function RoomPage() {
       <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-2 bg-[#0f172a] px-6 text-center text-white">
         <p className="text-lg font-medium">This room already has two players.</p>
         <p className="text-sm text-white/65">Open the link from the device you joined with, or start a new room.</p>
+        <button
+          type="button"
+          onClick={() => router.replace('/')}
+          className="mt-4 rounded-full bg-white/10 px-5 py-2 text-sm text-white"
+        >
+          Back to solo demo
+        </button>
       </div>
     )
   }
@@ -263,6 +286,15 @@ export default function RoomPage() {
               Opponent disconnected. Waiting for reconnection…
             </p>
           )}
+
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.98 }}
+            onClick={backToSoloDemo}
+            className="w-full rounded-xl border border-white/15 bg-white/5 py-3 text-sm font-semibold text-white/80 transition-colors hover:bg-white/10"
+          >
+            Back to solo / local demo
+          </motion.button>
         </div>
       </div>
     )

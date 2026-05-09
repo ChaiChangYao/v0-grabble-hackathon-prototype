@@ -4,13 +4,6 @@ import { applyGeneratedFareMonTeam } from '@/lib/faremon-engine'
 import type { FareMon, FareMonGeneratedImages, FareMonType } from '@/lib/faremon/types'
 import { getGrabbleRoom, patchGrabbleRoom } from '@/lib/grabble-room-store'
 
-function requestOrigin(req: NextRequest): string {
-  const host = req.headers.get('x-forwarded-host') ?? req.headers.get('host')
-  const proto = req.headers.get('x-forwarded-proto') ?? 'http'
-  if (host) return `${proto}://${host}`
-  return 'http://localhost:3000'
-}
-
 export async function POST(req: NextRequest, ctx: { params: Promise<{ roomCode: string }> }) {
   const { roomCode } = await ctx.params
   let body: { playerId?: string; expectedVersion?: number }
@@ -57,7 +50,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ roomCode: 
     return NextResponse.json({ error: 'NOT_FOUND' }, { status: 404 })
   }
 
-  const origin = requestOrigin(req)
+  const origin = req.nextUrl.origin
   const matchSeed = room.roomCode
 
   const buildBody = (pid: 'player1' | 'player2', p: typeof defaultPlayer1) => ({
@@ -111,6 +104,11 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ roomCode: 
     let next = applyGeneratedFareMonTeam(fs, 1, pair1)
     next = applyGeneratedFareMonTeam(next, 2, pair2)
 
+    const p1Active =
+      next.player1Team.activeFareMonIndex === 0 ? next.player1Team.faremon1 : next.player1Team.faremon2
+    const p2Active =
+      next.player2Team.activeFareMonIndex === 0 ? next.player2Team.faremon1 : next.player2Team.faremon2
+
     const imagesLock = await patchGrabbleRoom(roomCode, {
       faremonState: {
         ...next,
@@ -121,90 +119,58 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ roomCode: 
       status: 'faremon-generating-images',
       faremonGenerating: true,
     })
-    if (!imagesLock.ok) {
-      return NextResponse.json({ error: 'SAVE_FAILED' }, { status: 500 })
-    }
+    if (!imagesLock.ok) return NextResponse.json({ error: 'SAVE_FAILED' }, { status: 500 })
 
-    const p1Active =
-      next.player1Team.activeFareMonIndex === 0 ? next.player1Team.faremon1 : next.player1Team.faremon2
-    const p2Active =
-      next.player2Team.activeFareMonIndex === 0 ? next.player2Team.faremon1 : next.player2Team.faremon2
-
-    if (!p1Active || !p2Active) {
-      return NextResponse.json({ error: 'ACTIVE_FAREMON_MISSING' }, { status: 500 })
-    }
-
-    const imageRes = await fetch(`${origin}/api/ai/generate-faremon-images`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        roomId: room.roomCode,
-        battleId: `${room.roomCode}-faremon`,
-        routeContext: {
-          city: 'Singapore',
-          pickup: defaultPlayer1.pickup,
-          destination: defaultPlayer1.destination,
-          weather: 'rainy',
-          timeOfDay: 'peak hour',
-        },
-        player1ActiveFareMon: p1Active,
-        player2ActiveFareMon: p2Active,
-      }),
-    })
-
-    if (!imageRes.ok) {
-      const detail = await imageRes.text().catch(() => '')
-      const failed = {
-        ...next,
-        imageGenerationStarted: true,
-        imageGenerationCompleted: false,
-        imageGenerationError: 'Image generation failed. Check image model/API configuration.',
+    if (p1Active && p2Active) {
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 25000)
+      try {
+        const imageRes = await fetch(`${origin}/api/ai/generate-faremon-images`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
+          body: JSON.stringify({
+            roomId: room.roomCode,
+            battleId: `${room.roomCode}-faremon`,
+            routeContext: {
+              city: 'Singapore',
+              pickup: defaultPlayer1.pickup,
+              destination: defaultPlayer1.destination,
+              weather: 'rainy',
+              timeOfDay: 'peak hour',
+            },
+            player1ActiveFareMon: p1Active,
+            player2ActiveFareMon: p2Active,
+          }),
+        })
+        if (imageRes.ok) {
+          const imageData = (await imageRes.json()) as { generatedImages: FareMonGeneratedImages }
+          next = {
+            ...next,
+            generatedImages: imageData.generatedImages,
+            backgroundPrompt: imageData.generatedImages.backgroundPrompt,
+            imageGenerationStarted: true,
+            imageGenerationCompleted: true,
+            imageGenerationError: null,
+          }
+        } else {
+          next = {
+            ...next,
+            imageGenerationStarted: true,
+            imageGenerationCompleted: false,
+            imageGenerationError: 'Image generation timed out or failed. Battle still started.',
+          }
+        }
+      } catch {
+        next = {
+          ...next,
+          imageGenerationStarted: true,
+          imageGenerationCompleted: false,
+          imageGenerationError: 'Image generation timed out or failed. Battle still started.',
+        }
+      } finally {
+        clearTimeout(timeout)
       }
-      await patchGrabbleRoom(roomCode, {
-        faremonState: failed,
-        faremonGenerating: false,
-        status: 'faremon-generating-images',
-      })
-      return NextResponse.json({ error: 'IMAGE_GENERATION_FAILED', detail }, { status: 502 })
-    }
-
-    const imageData = (await imageRes.json()) as {
-      generatedImages: FareMonGeneratedImages
-    }
-
-    next = {
-      ...next,
-      generatedImages: imageData.generatedImages,
-      backgroundPrompt: imageData.generatedImages.backgroundPrompt,
-      imageGenerationStarted: true,
-      imageGenerationCompleted: true,
-      imageGenerationError: null,
-      player1Team: {
-        ...next.player1Team,
-        faremon1: next.player1Team.faremon1
-          ? {
-              ...next.player1Team.faremon1,
-              visualIdentity: imageData.generatedImages.player1.visualIdentity,
-              characterPromptFront: imageData.generatedImages.player1.frontPrompt,
-              characterPromptBack: imageData.generatedImages.player1.backPrompt,
-              frontImageUrl: imageData.generatedImages.player1.frontImageUrl,
-              backImageUrl: imageData.generatedImages.player1.backImageUrl,
-            }
-          : null,
-      },
-      player2Team: {
-        ...next.player2Team,
-        faremon1: next.player2Team.faremon1
-          ? {
-              ...next.player2Team.faremon1,
-              visualIdentity: imageData.generatedImages.player2.visualIdentity,
-              characterPromptFront: imageData.generatedImages.player2.frontPrompt,
-              characterPromptBack: imageData.generatedImages.player2.backPrompt,
-              frontImageUrl: imageData.generatedImages.player2.frontImageUrl,
-              backImageUrl: imageData.generatedImages.player2.backImageUrl,
-            }
-          : null,
-      },
     }
 
     const finalRes = await patchGrabbleRoom(roomCode, {
@@ -212,12 +178,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ roomCode: 
       status: 'faremon-battle',
       faremonGenerating: false,
     })
-    if (!finalRes.ok) {
-      if (finalRes.error === 'VERSION_MISMATCH') {
-        return NextResponse.json({ error: 'VERSION_MISMATCH', room: finalRes.room }, { status: 409 })
-      }
-      return NextResponse.json({ error: 'SAVE_FAILED' }, { status: 500 })
-    }
+    if (!finalRes.ok) return NextResponse.json({ error: 'SAVE_FAILED' }, { status: 500 })
     return NextResponse.json({ room: finalRes.room })
   } catch (e) {
     await patchGrabbleRoom(roomCode, {

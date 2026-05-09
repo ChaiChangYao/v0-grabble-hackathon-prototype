@@ -18,9 +18,9 @@ export function MatchmakingScreen({ player, opponent, matchedSimilarity, onMatch
   const arena = useMemo(() => getRandomArena(), [])
   
   useEffect(() => {
-    const timer1 = setTimeout(() => setPhase('found'), 2000)
-    const timer2 = setTimeout(() => setPhase('matched'), 3500)
-    const timer3 = setTimeout(() => onMatched(), 5000)
+    const timer1 = setTimeout(() => setPhase('found'), 100)
+    const timer2 = setTimeout(() => setPhase('matched'), 200)
+    const timer3 = setTimeout(() => onMatched(), 300)
     
     return () => {
       clearTimeout(timer1)

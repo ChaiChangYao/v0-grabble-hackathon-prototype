@@ -8,6 +8,7 @@ import {
 } from '@/lib/grabble-room-store'
 import type { GrabbleRoom } from '@/lib/grabble-room-types'
 import { createInitialFareMonBattleState } from '@/lib/faremon-engine'
+import type { FareMonMove } from '@/lib/faremon/types'
 import type { RoomPatch } from '@/lib/grabble-room-store'
 
 function jsonRoom(r: GrabbleRoom) {
@@ -32,6 +33,8 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ roomCode: str
     expectedVersion?: number
     selectedTypes?: unknown
     locked?: boolean
+    battleAction?: 'move' | 'switch'
+    move?: FareMonMove | null
     patch?: RoomPatch
   }
   try {
@@ -95,7 +98,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ roomCode: str
     if (!room?.faremonState) {
       return NextResponse.json({ error: 'BAD_STATE' }, { status: 409 })
     }
-    if (room.status !== 'faremon-type-selection') {
+    if (room.status !== 'faremon-type-selection' && room.status !== 'pregame') {
       return NextResponse.json({ error: 'BAD_STATE' }, { status: 409 })
     }
     if (
@@ -113,6 +116,32 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ roomCode: str
     if (role === 1) next.player1Team = team
     else next.player2Team = team
 
+    const res = await patchGrabbleRoom(roomCode, {
+      status: 'faremon-type-selection',
+      faremonState: next,
+    })
+    if (!res.ok) {
+      if (res.error === 'NOT_FOUND') return NextResponse.json({ error: 'NOT_FOUND' }, { status: 404 })
+      return NextResponse.json({ error: 'VERSION_MISMATCH', room: res.room }, { status: 409 })
+    }
+    return NextResponse.json({ room: res.room })
+  }
+
+  if (body.action === 'faremon-action') {
+    const room = await getGrabbleRoom(roomCode)
+    if (!room?.faremonState || room.status !== 'faremon-battle') {
+      return NextResponse.json({ error: 'BAD_STATE' }, { status: 409 })
+    }
+    const next = structuredClone(room.faremonState)
+    if (role === 1) {
+      next.player1Action = body.battleAction === 'switch' ? 'switch' : 'move'
+      next.player1SelectedMove = body.battleAction === 'switch' ? null : (body.move ?? null)
+      next.player1Locked = true
+    } else {
+      next.player2Action = body.battleAction === 'switch' ? 'switch' : 'move'
+      next.player2SelectedMove = body.battleAction === 'switch' ? null : (body.move ?? null)
+      next.player2Locked = true
+    }
     const res = await patchGrabbleRoom(roomCode, { faremonState: next })
     if (!res.ok) {
       if (res.error === 'NOT_FOUND') return NextResponse.json({ error: 'NOT_FOUND' }, { status: 404 })

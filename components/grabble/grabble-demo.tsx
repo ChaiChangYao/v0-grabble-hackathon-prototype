@@ -196,24 +196,36 @@ export function GrabbleDemo(props: GrabbleDemoProps = {}) {
     lastRoomSync.current = serverRoom.updatedAt
     remoteVersion.current = serverRoom.version
     applyingRemote.current = true
-    setState((prev) => ({
-      ...prev,
-      fareMonState: serverRoom.faremonState ?? prev.fareMonState,
-      winner: serverRoom.winner ?? serverRoom.faremonState?.winner ?? prev.winner,
-      selectedGame: 'faremon-duel',
-      currentScreen: deriveGrabbleScreen(serverRoom),
-    }))
+    setState((prev) => {
+      let fareMonState = serverRoom.faremonState ?? prev.fareMonState
+      if (serverRoom.status === 'faremon-type-selection' && fareMonState && prev.fareMonState && resolvedRole) {
+        const next = structuredClone(fareMonState)
+        const localTeam = resolvedRole === 1 ? prev.fareMonState.player1Team : prev.fareMonState.player2Team
+        const remoteTeam = resolvedRole === 1 ? next.player1Team : next.player2Team
+        if (localTeam.locked || localTeam.selectedTypes.length > remoteTeam.selectedTypes.length) {
+          if (resolvedRole === 1) next.player1Team = localTeam
+          else next.player2Team = localTeam
+          fareMonState = next
+        }
+      }
+      return {
+        ...prev,
+        fareMonState,
+        winner: serverRoom.winner ?? serverRoom.faremonState?.winner ?? prev.winner,
+        selectedGame: 'faremon-duel',
+        currentScreen: deriveGrabbleScreen(serverRoom),
+      }
+    })
     queueMicrotask(() => {
       applyingRemote.current = false
     })
-  }, [isRealRoom, serverRoom])
+  }, [isRealRoom, serverRoom, resolvedRole])
 
   useEffect(() => {
     if (!isRealRoom || !grabbleRoomCode || !grabblePlayerId || applyingRemote.current) return
     const st = serverRoom?.status
     if (
       st !== 'faremon-type-selection' &&
-      st !== 'faremon-battle' &&
       st !== 'faremon-generating' &&
       st !== 'faremon-generating-team' &&
       st !== 'faremon-generating-images'
@@ -655,6 +667,40 @@ export function GrabbleDemo(props: GrabbleDemoProps = {}) {
     router.push('/room/create')
   }, [router])
 
+  const startRealRoomFareMonSelection = useCallback(async () => {
+    setState((prev) => ({
+      ...prev,
+      selectedGame: 'faremon-duel',
+      currentScreen: 'faremon-type-selection',
+      fareMonState: prev.fareMonState ?? createInitialFareMonBattleState(),
+    }))
+    if (!isRealRoom || !grabbleRoomCode || !grabblePlayerId) return
+    try {
+      const r = await fetch(`/api/room/${grabbleRoomCode}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'sync',
+          playerId: grabblePlayerId,
+          patch: { status: 'faremon-type-selection' },
+        }),
+      })
+      if (r.ok || r.status === 409) {
+        const j = (await r.json()) as { room: GrabbleRoom }
+        onServerRoomUpdate?.(j.room)
+        remoteVersion.current = j.room.version
+      }
+    } catch {
+      /* local screen already moved; polling will catch up */
+    }
+  }, [isRealRoom, grabbleRoomCode, grabblePlayerId, onServerRoomUpdate])
+
+  useEffect(() => {
+    if (isRealRoom && state.currentScreen === 'matchmaking') {
+      void startRealRoomFareMonSelection()
+    }
+  }, [isRealRoom, state.currentScreen, startRealRoomFareMonSelection])
+
   // Ride option selection - mutually exclusive
   const handleSelectRideOption = useCallback((option: RideOptionId) => {
     setState((prev) => ({ ...prev, selectedRideOption: option }))
@@ -662,17 +708,35 @@ export function GrabbleDemo(props: GrabbleDemoProps = {}) {
 
   // FareMon type selection
   const handleSelectType = useCallback((playerId: 1 | 2, type: FareMonType) => {
+    const fs = stateRef.current.fareMonState
+    const nextFs = fs ? selectType(fs, playerId, type) : null
     setState((prev) => {
       if (!prev.fareMonState) return prev
-      const newState = selectType(prev.fareMonState, playerId, type)
-      return { ...prev, fareMonState: newState }
+      return { ...prev, fareMonState: selectType(prev.fareMonState, playerId, type) }
     })
-  }, [])
+    if (isRealRoom && nextFs && grabbleRoomCode && grabblePlayerId) {
+      const team = playerId === 1 ? nextFs.player1Team : nextFs.player2Team
+      void fetch(`/api/room/${grabbleRoomCode}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'faremon-types',
+          playerId: grabblePlayerId,
+          selectedTypes: team.selectedTypes,
+          locked: team.locked,
+        }),
+      })
+    }
+  }, [isRealRoom, grabbleRoomCode, grabblePlayerId])
 
   // FareMon lock in team — async AI + optional sprite generation
   const handleLockInTeam = useCallback(
     async (playerId: 1 | 2) => {
       if (isRealRoom) {
+        const fs = stateRef.current.fareMonState
+        if (!fs) return
+        const selectedTypes = playerId === 1 ? fs.player1Team.selectedTypes : fs.player2Team.selectedTypes
+        if (selectedTypes.length !== 2) return
         setState((prev) => {
           if (!prev.fareMonState) return prev
           const next = structuredClone(prev.fareMonState)
@@ -683,6 +747,27 @@ export function GrabbleDemo(props: GrabbleDemoProps = {}) {
           else next.player2Team = team
           return { ...prev, fareMonState: next }
         })
+        if (grabbleRoomCode && grabblePlayerId) {
+          try {
+            const r = await fetch(`/api/room/${grabbleRoomCode}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                action: 'faremon-types',
+                playerId: grabblePlayerId,
+                selectedTypes,
+                locked: true,
+              }),
+            })
+            if (r.ok || r.status === 409) {
+              const j = (await r.json()) as { room: GrabbleRoom }
+              onServerRoomUpdate?.(j.room)
+              remoteVersion.current = j.room.version
+            }
+          } catch {
+            toast.error('Could not lock in. Try once more.')
+          }
+        }
         return
       }
       const fs = stateRef.current.fareMonState
@@ -748,7 +833,33 @@ export function GrabbleDemo(props: GrabbleDemoProps = {}) {
         })
       }
     },
-    [faremonRoomId, matchSessionId, isRealRoom],
+    [faremonRoomId, matchSessionId, isRealRoom, grabbleRoomCode, grabblePlayerId, onServerRoomUpdate],
+  )
+
+  const submitRealRoomBattleAction = useCallback(
+    async (battleAction: 'move' | 'switch', move?: FareMonMove | null) => {
+      if (!isRealRoom || !grabbleRoomCode || !grabblePlayerId) return
+      try {
+        const r = await fetch(`/api/room/${grabbleRoomCode}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'faremon-action',
+            playerId: grabblePlayerId,
+            battleAction,
+            move: battleAction === 'move' ? move : null,
+          }),
+        })
+        if (r.ok || r.status === 409) {
+          const j = (await r.json()) as { room: GrabbleRoom }
+          onServerRoomUpdate?.(j.room)
+          remoteVersion.current = j.room.version
+        }
+      } catch {
+        toast.error('Move did not sync. Tap again.')
+      }
+    },
+    [isRealRoom, grabbleRoomCode, grabblePlayerId, onServerRoomUpdate],
   )
 
   // FareMon move selection
@@ -785,8 +896,9 @@ export function GrabbleDemo(props: GrabbleDemoProps = {}) {
 
         return { ...prev, fareMonState: newState }
       })
+      if (isRealRoom) void submitRealRoomBattleAction('move', move)
     },
-    [isRealRoom],
+    [isRealRoom, submitRealRoomBattleAction],
   )
 
   // FareMon switch
@@ -824,8 +936,9 @@ export function GrabbleDemo(props: GrabbleDemoProps = {}) {
 
         return { ...prev, fareMonState: newState }
       })
+      if (isRealRoom) void submitRealRoomBattleAction('switch')
     },
-    [isRealRoom],
+    [isRealRoom, submitRealRoomBattleAction],
   )
 
   // BattleRoute path selection
@@ -910,8 +1023,8 @@ export function GrabbleDemo(props: GrabbleDemoProps = {}) {
             selectedRideOption={state.selectedRideOption}
             onSelectRideOption={handleSelectRideOption}
             onStartGrabble={() => {
-              if (isRealRoom) setScreen('grabble-optin')
-              else router.push('/room/create')
+              if (isRealRoom) void startRealRoomFareMonSelection()
+              else setScreen('grabble-optin')
             }}
             onBookRide={() => setScreen('booking-confirmation')}
             onBack={resetDemo}
@@ -922,7 +1035,10 @@ export function GrabbleDemo(props: GrabbleDemoProps = {}) {
         return (
           <GrabbleOptInScreen
             player={player}
-            onAccept={() => setScreen('matchmaking')}
+            onAccept={() => {
+              if (isRealRoom) void startRealRoomFareMonSelection()
+              else setScreen('matchmaking')
+            }}
             onDecline={() => setScreen('ride-options')}
           />
         )
@@ -1003,7 +1119,7 @@ export function GrabbleDemo(props: GrabbleDemoProps = {}) {
             state={state.fareMonState}
             onSelectMove={(move) => handleFareMonMove(playerId, move)}
             onSwitch={() => handleFareMonSwitch(playerId)}
-            requireGeneratedImages={isRealRoom}
+            requireGeneratedImages={false}
             waitingForOpponent={
               playerId === 1 
                 ? state.fareMonState.player1Locked && !state.fareMonState.player2Locked
@@ -1123,7 +1239,7 @@ export function GrabbleDemo(props: GrabbleDemoProps = {}) {
           className="mt-4 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-white/80 transition-colors hover:bg-white/20"
         >
           <RotateCcw className="h-4 w-4" />
-          {compactChrome ? 'Exit match' : 'Reset Demo'}
+          {isRealRoom ? 'Back to solo / local demo' : compactChrome ? 'Exit match' : 'Reset Demo'}
         </motion.button>
       </motion.div>
 
