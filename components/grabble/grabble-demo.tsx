@@ -83,6 +83,7 @@ const initialState: GameState = {
 
 function deriveGrabbleScreen(room: GrabbleRoom): ExtendedScreen {
   const st = room.status
+  if (st === 'pregame') return 'ride-options'
   if (
     st === 'faremon-type-selection' ||
     st === 'faremon-generating' ||
@@ -223,6 +224,26 @@ export function GrabbleDemo(props: GrabbleDemoProps = {}) {
     if (!fs) return
     const t = setTimeout(async () => {
       try {
+        if (st === 'faremon-type-selection' && resolvedRole) {
+          const team = resolvedRole === 1 ? fs.player1Team : fs.player2Team
+          const r = await fetch(`/api/room/${grabbleRoomCode}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'faremon-types',
+              playerId: grabblePlayerId,
+              selectedTypes: team.selectedTypes,
+              locked: team.locked,
+            }),
+          })
+          if (r.ok || r.status === 409) {
+            const j = (await r.json()) as { room: GrabbleRoom }
+            onServerRoomUpdate?.(j.room)
+            remoteVersion.current = j.room.version
+          }
+          return
+        }
+
         const r = await fetch(`/api/room/${grabbleRoomCode}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -249,7 +270,7 @@ export function GrabbleDemo(props: GrabbleDemoProps = {}) {
       }
     }, 400)
     return () => clearTimeout(t)
-  }, [state.fareMonState, isRealRoom, grabbleRoomCode, grabblePlayerId, serverRoom?.status, onServerRoomUpdate])
+  }, [state.fareMonState, isRealRoom, grabbleRoomCode, grabblePlayerId, resolvedRole, serverRoom?.status, onServerRoomUpdate])
 
   useEffect(() => {
     if (!isRealRoom || !grabbleRoomCode || !grabblePlayerId) return
@@ -888,7 +909,10 @@ export function GrabbleDemo(props: GrabbleDemoProps = {}) {
             player={player}
             selectedRideOption={state.selectedRideOption}
             onSelectRideOption={handleSelectRideOption}
-            onStartGrabble={() => router.push('/room/create')}
+            onStartGrabble={() => {
+              if (isRealRoom) setScreen('grabble-optin')
+              else router.push('/room/create')
+            }}
             onBookRide={() => setScreen('booking-confirmation')}
             onBack={resetDemo}
           />
@@ -909,12 +933,27 @@ export function GrabbleDemo(props: GrabbleDemoProps = {}) {
             player={player}
             opponent={opponent}
             matchedSimilarity={99}
-            onMatched={() => {
+            onMatched={async () => {
+              if (isRealRoom && grabbleRoomCode && grabblePlayerId && state.fareMonState) {
+                const r = await fetch(`/api/room/${grabbleRoomCode}`, {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    action: 'sync',
+                    playerId: grabblePlayerId,
+                    patch: { status: 'faremon-type-selection' },
+                  }),
+                })
+                if (r.ok) {
+                  const j = (await r.json()) as { room: GrabbleRoom }
+                  onServerRoomUpdate?.(j.room)
+                }
+              }
               setState((prev) => ({
                 ...prev,
                 selectedGame: 'faremon-duel',
                 currentScreen: 'faremon-type-selection',
-                fareMonState: createInitialFareMonBattleState(),
+                fareMonState: isRealRoom ? (prev.fareMonState ?? createInitialFareMonBattleState()) : createInitialFareMonBattleState(),
               }))
             }}
           />

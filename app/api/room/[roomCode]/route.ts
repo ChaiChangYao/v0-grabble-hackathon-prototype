@@ -30,6 +30,8 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ roomCode: str
     action: string
     playerId?: string
     expectedVersion?: number
+    selectedTypes?: unknown
+    locked?: boolean
     patch?: RoomPatch
   }
   try {
@@ -77,10 +79,41 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ roomCode: str
     const fs = createInitialFareMonBattleState()
     const res = await patchGrabbleRoom(roomCode, {
       expectedVersion: body.expectedVersion ?? r.version,
-      status: 'faremon-type-selection',
+      status: 'pregame',
       selectedGame: 'faremon',
       faremonState: fs,
     })
+    if (!res.ok) {
+      if (res.error === 'NOT_FOUND') return NextResponse.json({ error: 'NOT_FOUND' }, { status: 404 })
+      return NextResponse.json({ error: 'VERSION_MISMATCH', room: res.room }, { status: 409 })
+    }
+    return NextResponse.json({ room: res.room })
+  }
+
+  if (body.action === 'faremon-types') {
+    const room = await getGrabbleRoom(roomCode)
+    if (!room?.faremonState) {
+      return NextResponse.json({ error: 'BAD_STATE' }, { status: 409 })
+    }
+    if (room.status !== 'faremon-type-selection') {
+      return NextResponse.json({ error: 'BAD_STATE' }, { status: 409 })
+    }
+    if (
+      !Array.isArray(body.selectedTypes) ||
+      body.selectedTypes.length > 2 ||
+      body.selectedTypes.some((t) => typeof t !== 'string')
+    ) {
+      return NextResponse.json({ error: 'Invalid selectedTypes' }, { status: 400 })
+    }
+
+    const next = structuredClone(room.faremonState)
+    const team = role === 1 ? next.player1Team : next.player2Team
+    team.selectedTypes = body.selectedTypes as typeof team.selectedTypes
+    team.locked = body.locked === true && team.selectedTypes.length === 2
+    if (role === 1) next.player1Team = team
+    else next.player2Team = team
+
+    const res = await patchGrabbleRoom(roomCode, { faremonState: next })
     if (!res.ok) {
       if (res.error === 'NOT_FOUND') return NextResponse.json({ error: 'NOT_FOUND' }, { status: 404 })
       return NextResponse.json({ error: 'VERSION_MISMATCH', room: res.room }, { status: 409 })

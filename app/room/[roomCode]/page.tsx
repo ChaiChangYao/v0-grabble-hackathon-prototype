@@ -173,8 +173,7 @@ export default function RoomPage() {
   const inLobby =
     room.status === 'waiting-for-player2' ||
     room.status === 'ready' ||
-    room.status === 'selecting-game' ||
-    room.status === 'pregame'
+    room.status === 'selecting-game'
 
   if (inLobby) {
     const p1 = role === 1
