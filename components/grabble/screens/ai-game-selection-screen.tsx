@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { GameType } from '@/lib/grabble-types'
-import { Search, Zap, Brain, Scale, Gamepad2, Route } from 'lucide-react'
+import { Search, Zap, Brain, Scale, Gamepad2, Route, Swords } from 'lucide-react'
 
 interface AIGameSelectionScreenProps {
+  preSelectedGame: GameType | null // Game already selected by parent
   onGameSelected: (game: GameType) => void
 }
 
@@ -17,14 +18,17 @@ const loadingSteps = [
   { text: 'Selecting fair game', icon: Gamepad2 },
 ]
 
-export function AIGameSelectionScreen({ onGameSelected }: AIGameSelectionScreenProps) {
+export function AIGameSelectionScreen({ preSelectedGame, onGameSelected }: AIGameSelectionScreenProps) {
   const [currentStep, setCurrentStep] = useState(0)
-  const [selectedGame, setSelectedGame] = useState<GameType | null>(null)
   const [showResult, setShowResult] = useState(false)
+  const hasStartedRef = useRef(false)
+
+  // Use pre-selected game from parent (selected once, shared by both phones)
+  const selectedGame = preSelectedGame || 'faremon-duel'
 
   useEffect(() => {
-    // Randomly select game
-    const game: GameType = Math.random() > 0.5 ? 'faremon-duel' : 'battleroute'
+    if (hasStartedRef.current) return
+    hasStartedRef.current = true
     
     // Progress through steps
     const stepInterval = setInterval(() => {
@@ -36,13 +40,12 @@ export function AIGameSelectionScreen({ onGameSelected }: AIGameSelectionScreenP
     
     // Show result after all steps
     const resultTimer = setTimeout(() => {
-      setSelectedGame(game)
       setShowResult(true)
     }, loadingSteps.length * 800)
     
     // Transition to game
     const gameTimer = setTimeout(() => {
-      onGameSelected(game)
+      onGameSelected(selectedGame)
     }, loadingSteps.length * 800 + 2500)
     
     return () => {
@@ -50,7 +53,7 @@ export function AIGameSelectionScreen({ onGameSelected }: AIGameSelectionScreenP
       clearTimeout(resultTimer)
       clearTimeout(gameTimer)
     }
-  }, [onGameSelected])
+  }, [onGameSelected, selectedGame])
 
   return (
     <div className="flex h-full flex-col bg-gradient-to-b from-[#1a1a2e] to-[#16213e]">
@@ -171,7 +174,7 @@ export function AIGameSelectionScreen({ onGameSelected }: AIGameSelectionScreenP
               >
                 <div className="flex h-32 w-32 items-center justify-center rounded-3xl bg-gradient-to-br from-[#00b14f] to-[#00923f] shadow-2xl shadow-[#00b14f]/30">
                   {selectedGame === 'faremon-duel' ? (
-                    <Zap className="w-16 h-16 text-white" />
+                    <Swords className="w-16 h-16 text-white" />
                   ) : (
                     <Route className="w-16 h-16 text-white" />
                   )}
@@ -197,6 +200,15 @@ export function AIGameSelectionScreen({ onGameSelected }: AIGameSelectionScreenP
                 ))}
               </motion.div>
               
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="mb-1 text-sm text-white/60"
+              >
+                AI selected
+              </motion.p>
+              
               <motion.h2
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -213,8 +225,8 @@ export function AIGameSelectionScreen({ onGameSelected }: AIGameSelectionScreenP
                 className="mb-6 text-center text-white/70"
               >
                 {selectedGame === 'faremon-duel'
-                  ? 'A strategic turn-based creature battle'
-                  : 'A strategic route-racing puzzle game'}
+                  ? 'Type-based ride creature battle'
+                  : 'Hidden-route guessing strategy'}
               </motion.p>
               
               {/* AI explanation */}
@@ -238,8 +250,7 @@ export function AIGameSelectionScreen({ onGameSelected }: AIGameSelectionScreenP
                   <div>
                     <p className="text-sm font-medium text-[#00b14f]">AI Selection Reason</p>
                     <p className="text-sm text-white/80">
-                      This game was selected for fairness: strategy-based, no reaction advantage, 
-                      identical rules for both players.
+                      Strategy-based, no reaction advantage, identical rules for both players.
                     </p>
                   </div>
                 </div>
