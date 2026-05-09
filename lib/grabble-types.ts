@@ -7,11 +7,11 @@ export type Screen =
   | 'matchmaking'
   | 'ai-game-selection'
   | 'faremon-duel'
-  | 'fare-blocks'
+  | 'battleroute'
   | 'results'
   | 'booking-confirmation'
 
-export type GameType = 'faremon-duel' | 'fare-blocks'
+export type GameType = 'faremon-duel' | 'battleroute'
 
 // Player data
 export interface Player {
