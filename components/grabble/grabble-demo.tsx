@@ -25,12 +25,12 @@ import {
   FareMonMove,
   type FareMon,
   createInitialFareMonBattleState,
+  createRandomFareMon,
   selectType,
   applyGeneratedFareMonTeam,
   resolveFareMonTurn,
   canResolveFareMonTurn,
 } from '@/lib/faremon-engine'
-import { buildFareMonCreatureImagePrompts } from '@/lib/faremon/faremon-ai-prompts'
 import {
   createBattleRouteState,
   placeRouteAsset,
@@ -101,60 +101,6 @@ function deriveGrabbleScreen(room: GrabbleRoom): ExtendedScreen {
   return 'faremon-type-selection'
 }
 
-async function attachFaremonSprites(pair: [FareMon, FareMon]): Promise<[FareMon, FareMon]> {
-  const items = pair.map((fm) => {
-    const vi =
-      fm.visualIdentity?.trim() ||
-      `${fm.primaryType} mobility creature named ${fm.name}; Singapore route motifs.`
-    const built = buildFareMonCreatureImagePrompts({
-      name: fm.name,
-      primaryType: fm.primaryType,
-      secondaryType: fm.secondaryType,
-      visualIdentity: vi,
-    })
-    return {
-      faremonId: fm.id,
-      frontPrompt: fm.characterPromptFront?.trim() || built.frontPrompt,
-      backPrompt: fm.characterPromptBack?.trim() || built.backPrompt,
-    }
-  })
-  try {
-    const r = await fetch('/api/ai/generate-faremon-sprites', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items }),
-    })
-    if (!r.ok) return pair
-    const j = (await r.json()) as {
-      results: Array<{
-        faremonId: string
-        frontImageUrl: string | null
-        backImageUrl: string | null
-      }>
-    }
-    const a = j.results[0]
-    const b = j.results[1]
-    return [
-      {
-        ...pair[0],
-        characterPromptFront: pair[0].characterPromptFront ?? items[0]?.frontPrompt,
-        characterPromptBack: pair[0].characterPromptBack ?? items[0]?.backPrompt,
-        frontImageUrl: a?.frontImageUrl ?? undefined,
-        backImageUrl: a?.backImageUrl ?? undefined,
-      },
-      {
-        ...pair[1],
-        characterPromptFront: pair[1].characterPromptFront ?? items[1]?.frontPrompt,
-        characterPromptBack: pair[1].characterPromptBack ?? items[1]?.backPrompt,
-        frontImageUrl: b?.frontImageUrl ?? undefined,
-        backImageUrl: b?.backImageUrl ?? undefined,
-      },
-    ]
-  } catch {
-    return pair
-  }
-}
-
 export function GrabbleDemo(props: GrabbleDemoProps = {}) {
   const {
     faremonRoomId,
@@ -174,7 +120,6 @@ export function GrabbleDemo(props: GrabbleDemoProps = {}) {
   const [state, setState] = useState<GameState>(() => ({ ...initialState }))
   const stateRef = useRef(state)
   stateRef.current = state
-  const [fareMonGenerating, setFareMonGenerating] = useState<Partial<Record<1 | 2, boolean>>>({})
   const isRealRoom = Boolean(
     viewMode === 'real-multiplayer' && grabbleRoomCode && grabblePlayerId && resolvedRole,
   )
@@ -776,62 +721,21 @@ export function GrabbleDemo(props: GrabbleDemoProps = {}) {
       if (team.selectedTypes.length !== 2 || team.locked) return
 
       const selectedTypes = team.selectedTypes as [FareMonType, FareMonType]
-      setFareMonGenerating((g) => ({ ...g, [playerId]: true }))
-
-      try {
-        const player = playerId === 1 ? defaultPlayer1 : defaultPlayer2
-        const matchSeed =
-          matchSessionId ??
-          faremonRoomId ??
-          `local-${typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now()}`
-
-        const res = await fetch('/api/ai/generate-faremon-team', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            playerId: playerId === 1 ? 'player1' : 'player2',
-            selectedTypes,
-            routeContext: {
-              pickup: player.pickup,
-              destination: player.destination,
-              normalFare: player.normalFare,
-              timeOfDay: 'peak hour',
-              weather: 'rainy',
-              city: 'Singapore',
-            },
-            matchSeed,
-          }),
-        })
-
-        if (!res.ok) {
-          const t = await res.text()
-          toast.error('FareMon generation failed', { description: t || res.statusText })
-          return
+      const instantPair: [FareMon, FareMon] = [
+        createRandomFareMon(selectedTypes[0], playerId, selectedTypes[1]),
+        createRandomFareMon(selectedTypes[1], playerId, selectedTypes[0]),
+      ]
+      setState((prev) => {
+        const cur = prev.fareMonState
+        if (!cur) return prev
+        const next = applyGeneratedFareMonTeam(cur, playerId, instantPair)
+        return {
+          ...prev,
+          fareMonState: next,
+          currentScreen: next.phase === 'battle' ? 'faremon-battle' : prev.currentScreen,
         }
-
-        const data = (await res.json()) as { faremons: [FareMon, FareMon] }
-        let pair = data.faremons
-        pair = await attachFaremonSprites(pair)
-
-        setState((prev) => {
-          const cur = prev.fareMonState
-          if (!cur) return prev
-          const next = applyGeneratedFareMonTeam(cur, playerId, pair)
-          const screen: ExtendedScreen =
-            next.phase === 'battle' ? 'faremon-battle' : prev.currentScreen
-          return { ...prev, fareMonState: next, currentScreen: screen }
-        })
-      } catch (e) {
-        toast.error('Could not generate team', {
-          description: e instanceof Error ? e.message : 'Network error',
-        })
-      } finally {
-        setFareMonGenerating((g) => {
-          const n = { ...g }
-          delete n[playerId]
-          return n
-        })
-      }
+      })
+      return
     },
     [faremonRoomId, matchSessionId, isRealRoom, grabbleRoomCode, grabblePlayerId, onServerRoomUpdate],
   )
@@ -1104,7 +1008,7 @@ export function GrabbleDemo(props: GrabbleDemoProps = {}) {
               opponentLocked={
                 playerId === 1 ? state.fareMonState.player2Team.locked : state.fareMonState.player1Team.locked
               }
-              isGenerating={!!fareMonGenerating[playerId]}
+              isGenerating={false}
               onSelectType={(type) => handleSelectType(playerId, type)}
               onLockIn={() => handleLockInTeam(playerId)}
             />
